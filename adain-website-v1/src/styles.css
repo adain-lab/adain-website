@@ -671,3 +671,83 @@ footer{background:var(--navy);color:white;padding:38px 0 18px}.footer-grid{displ
   .nav-actions .desktop-cta{display:none}
   .cart-nav-btn{padding:10px}
 }
+
+
+/* ===== V5 CART REQUIRED + TABLE ===== */
+.required-note{font-size:12px;color:var(--muted);margin:-8px 0 16px}
+.cart-actions .btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  filter:grayscale(.15);
+}
+.cart-required-warning{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  background:#fff4dd;
+  color:#7a5600;
+  font-size:12px;
+  line-height:1.45;
+}
+.cart-table-wrap{
+  width:100%;
+  overflow-x:auto;
+  border:1px solid var(--line);
+  border-radius:14px;
+}
+.cart-product-table{
+  width:100%;
+  min-width:760px;
+  border-collapse:collapse;
+  background:#fff;
+}
+.cart-product-table th,
+.cart-product-table td{
+  padding:12px 10px;
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  vertical-align:middle;
+  font-size:13px;
+}
+.cart-product-table th{
+  background:#f7f9fc;
+  color:var(--navy);
+  font-weight:900;
+}
+.cart-product-table th:first-child,
+.cart-product-table td:first-child{
+  width:48px;
+  text-align:center;
+}
+.cart-product-table td:nth-child(3),
+.cart-product-table td:nth-child(4){
+  text-align:center;
+  white-space:nowrap;
+}
+.cart-product-table td:nth-child(5),
+.cart-product-table td:nth-child(6),
+.cart-product-table th:nth-child(5),
+.cart-product-table th:nth-child(6){
+  text-align:right;
+  white-space:nowrap;
+}
+.cart-product-table tr:last-child td{border-bottom:0}
+.cart-product-table th:last-child,
+.cart-product-table td:last-child{border-right:0}
+.table-product-name{display:flex;align-items:center;gap:10px}
+.table-product-name img{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#f7f9fc}
+.table-product-name span{display:flex;flex-direction:column;gap:3px}
+.table-product-name b{color:var(--navy);font-size:14px}
+.table-product-name small{color:var(--gold);font-size:10px;font-weight:800;text-transform:uppercase}
+.qty-control.compact{margin-top:0}
+.cart-remove.icon-only{padding:6px;border-radius:8px}
+.table-total-row td{
+  font-weight:900;
+  background:#fbfcfe;
+  color:var(--navy);
+}
+.table-total-row td:first-child{text-align:right}
+@media(max-width:760px){
+  .cart-product-table{min-width:700px}
+}

@@ -478,62 +478,113 @@ function AlatPage({onAddCart}) {
 
 
 function CartPage({cart,setCart,navigate}){
-  const [customer,setCustomer]=useState(()=>JSON.parse(localStorage.getItem('aip_customer')||'{"name":"","company":"","phone":"","address":"","notes":""}'));
+  const [customer,setCustomer]=useState(()=>JSON.parse(localStorage.getItem('aip_customer')||'{"name":"","company":"","phone":"","email":"","address":"","notes":""}'));
   const [msg,setMsg]=useState('');
   const updateCustomer=(k,v)=>{const next={...customer,[k]:v};setCustomer(next);localStorage.setItem('aip_customer',JSON.stringify(next))};
   const grouped=['accounting','vape','alat'].map(unit=>({unit,items:cart.filter(x=>x.unit===unit)})).filter(g=>g.items.length);
   const numericTotal=cart.reduce((sum,x)=>sum+(x.numericPrice!=null?x.numericPrice*x.qty:0),0);
   const hasNonNumeric=cart.some(x=>x.numericPrice==null);
+  const requiredOk=[customer.name,customer.company,customer.phone,customer.email,customer.address].every(v=>String(v||'').trim());
 
   const changeQty=(id,delta)=>setCart(c=>c.map(x=>x.id===id?{...x,qty:Math.max(1,x.qty+delta)}:x));
   const remove=(id)=>setCart(c=>c.filter(x=>x.id!==id));
   const clear=()=>{if(confirm('Kosongkan seluruh keranjang?'))setCart([])};
 
+  const validate=()=>{
+    if(!requiredOk){
+      setMsg('Lengkapi semua Data Pemesan yang wajib: Nama, Perusahaan, No. WhatsApp, Email, dan Alamat.');
+      return false;
+    }
+    if(!cart.length){
+      setMsg('Keranjang masih kosong.');
+      return false;
+    }
+    setMsg('');
+    return true;
+  };
+
   const buildPdf=()=>{
     const doc=new jsPDF({unit:'mm',format:'a4'});
-    const margin=16; let y=18;
-    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('PESANAN PEMBELIAN / INQUIRY',margin,y); y+=8;
+    const margin=14; let y=16;
+    doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.text('PESANAN PEMBELIAN / INQUIRY',margin,y); y+=8;
     doc.setFontSize(11); doc.text('ada in Project',margin,y); y+=6;
     doc.setFont('helvetica','normal'); doc.setFontSize(9);
     doc.text(`Tanggal: ${new Date().toLocaleString('id-ID')}`,margin,y); y+=7;
-    doc.line(margin,y,194,y); y+=7;
+    doc.line(margin,y,196,y); y+=7;
 
     doc.setFont('helvetica','bold'); doc.text('Data Pemesan',margin,y); y+=6;
     doc.setFont('helvetica','normal');
     const info=[
-      `Nama: ${customer.name||'-'}`,
-      `Perusahaan: ${customer.company||'-'}`,
-      `No. WA: ${customer.phone||'-'}`,
-      `Alamat: ${customer.address||'-'}`
+      `Nama: ${customer.name}`,
+      `Perusahaan: ${customer.company}`,
+      `No. WA: ${customer.phone}`,
+      `Email: ${customer.email}`,
+      `Alamat: ${customer.address}`
     ];
-    info.forEach(t=>{doc.text(t,margin,y);y+=5});
+    info.forEach(t=>{const lines=doc.splitTextToSize(t,178);doc.text(lines,margin,y);y+=lines.length*4.5});
     y+=3;
 
     grouped.forEach(group=>{
-      if(y>260){doc.addPage();y=18}
+      if(y>245){doc.addPage();y=16}
       doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(unitLabel(group.unit),margin,y); y+=6;
-      doc.setFontSize(9);
-      group.items.forEach((x,i)=>{
-        if(y>270){doc.addPage();y=18}
+
+      if(group.unit==='vape' || group.unit==='alat'){
+        const col=[margin,margin+10,margin+82,margin+98,margin+119,margin+154,196];
+        const rowH=7;
+        doc.setFontSize(8.5);
+        doc.rect(col[0],y,col[6]-col[0],rowH);
+        ['No.','Nama Produk','Qty','Satuan','Harga','Jumlah'].forEach((h,i)=>doc.text(h,col[i]+2,y+4.7));
+        for(let i=1;i<6;i++) doc.line(col[i],y,col[i],y+rowH);
+        y+=rowH;
+
+        let unitSubtotal=0;
+        group.items.forEach((x,i)=>{
+          if(y>270){doc.addPage();y=16}
+          const p=x.numericPrice;
+          const amount=p!=null?p*x.qty:null;
+          if(amount!=null)unitSubtotal+=amount;
+          const nameLines=doc.splitTextToSize(x.title,67);
+          const h=Math.max(rowH, nameLines.length*4.2+3);
+          doc.rect(col[0],y,col[6]-col[0],h);
+          for(let j=1;j<6;j++) doc.line(col[j],y,col[j],y+h);
+          doc.setFont('helvetica','normal');
+          doc.text(String(i+1),col[0]+3,y+4.7);
+          doc.text(nameLines,col[1]+2,y+4.7);
+          doc.text(String(x.qty),col[2]+4,y+4.7);
+          doc.text('Unit',col[3]+2,y+4.7);
+          doc.text(p!=null?rupiahNumber(p):x.priceDisplay,col[4]+2,y+4.7);
+          doc.text(amount!=null?rupiahNumber(amount):x.priceDisplay,col[5]+2,y+4.7);
+          y+=h;
+        });
         doc.setFont('helvetica','bold');
-        doc.text(`${i+1}. ${x.title}`,margin,y); y+=5;
-        doc.setFont('helvetica','normal');
-        doc.text(`Kategori: ${x.category||'-'} | Qty: ${x.qty}`,margin+4,y); y+=5;
-        const price=x.numericPrice!=null?`${rupiahNumber(x.numericPrice)} x ${x.qty} = ${rupiahNumber(x.numericPrice*x.qty)}`:(x.price||'Hubungi Kami');
-        doc.text(`Harga: ${price}`,margin+4,y); y+=5;
-        if(x.description){const lines=doc.splitTextToSize(`Catatan: ${x.description}`,170);doc.text(lines,margin+4,y);y+=lines.length*4.5}
-        y+=3;
-      });
-      y+=2;
+        doc.rect(col[0],y,col[6]-col[0],rowH);
+        doc.text('Total',col[1]+2,y+4.7);
+        doc.text(String(group.items.reduce((n,x)=>n+x.qty,0)),col[2]+4,y+4.7);
+        doc.text(rupiahNumber(unitSubtotal),col[5]+2,y+4.7);
+        for(let j=1;j<6;j++) doc.line(col[j],y,col[j],y+rowH);
+        y+=rowH+6;
+      }else{
+        doc.setFontSize(9);
+        group.items.forEach((x,i)=>{
+          if(y>270){doc.addPage();y=16}
+          doc.setFont('helvetica','bold'); doc.text(`${i+1}. ${x.title}`,margin,y); y+=5;
+          doc.setFont('helvetica','normal');
+          doc.text(`Kategori: ${x.category||'-'} | Qty: ${x.qty}`,margin+4,y); y+=5;
+          doc.text(`Harga: ${x.numericPrice!=null?`${rupiahNumber(x.numericPrice)} x ${x.qty} = ${rupiahNumber(x.numericPrice*x.qty)}`:x.priceDisplay}`,margin+4,y); y+=5;
+          if(x.description){const lines=doc.splitTextToSize(`Catatan: ${x.description}`,174);doc.text(lines,margin+4,y);y+=lines.length*4.5}
+          y+=3;
+        });
+      }
     });
 
-    doc.line(margin,y,194,y); y+=7;
+    if(y>255){doc.addPage();y=16}
+    doc.line(margin,y,196,y); y+=7;
     doc.setFont('helvetica','bold'); doc.setFontSize(11);
     doc.text(`Total harga terhitung: ${rupiahNumber(numericTotal)}`,margin,y); y+=6;
-    if(hasNonNumeric){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('* Item bertanda Hubungi Kami/Minta Penawaran akan dikonfirmasi oleh admin.',margin,y);y+=6}
+    if(hasNonNumeric){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('* Item Minta Penawaran/Hubungi Kami akan dikonfirmasi oleh admin.',margin,y);y+=6}
     if(customer.notes){
       doc.setFont('helvetica','bold');doc.text('Catatan Pemesan:',margin,y);y+=5;
-      doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(customer.notes,175);doc.text(lines,margin,y);y+=lines.length*4.5;
+      doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(customer.notes,178);doc.text(lines,margin,y);y+=lines.length*4.5;
     }
     y+=8;
     doc.setFontSize(8); doc.setTextColor(100); doc.text('Dokumen dibuat otomatis melalui website ada in Project.',margin,y);
@@ -541,13 +592,12 @@ function CartPage({cart,setCart,navigate}){
   };
 
   const downloadPdf=()=>{
-    if(!cart.length)return;
-    const doc=buildPdf();
-    doc.save(`Pesanan-ada-in-Project-${Date.now()}.pdf`);
+    if(!validate())return;
+    buildPdf().save(`Pesanan-ada-in-Project-${Date.now()}.pdf`);
   };
 
   const printPdf=()=>{
-    if(!cart.length)return;
+    if(!validate())return;
     const doc=buildPdf();
     const url=URL.createObjectURL(doc.output('blob'));
     const win=window.open(url,'_blank');
@@ -555,13 +605,14 @@ function CartPage({cart,setCart,navigate}){
     setTimeout(()=>{try{win.print()}catch{}},800);
   };
 
+  const summaryText=()=>cart.map((x,i)=>`${i+1}. ${x.title} (${unitLabel(x.unit)}) x${x.qty}`).join('\n');
+
   const sendWhatsApp=async()=>{
-    if(!cart.length)return;
+    if(!validate())return;
     const doc=buildPdf();
     const blob=doc.output('blob');
     const file=new File([blob],`Pesanan-ada-in-Project-${Date.now()}.pdf`,{type:'application/pdf'});
-    const summary=cart.map((x,i)=>`${i+1}. ${x.title} (${unitLabel(x.unit)}) x${x.qty}`).join('\n');
-    const text=`Halo ada in Project, saya ingin mengirim pesanan/inquiry berikut:\n\n${summary}\n\nNama: ${customer.name||'-'}\nPerusahaan: ${customer.company||'-'}\nMohon konfirmasi ketersediaan dan total pesanan.`;
+    const text=`Halo ada in Project, saya ingin mengirim pesanan/inquiry berikut:\n\n${summaryText()}\n\nNama: ${customer.name}\nPerusahaan: ${customer.company}\nNo. WA: ${customer.phone}\nEmail: ${customer.email}\nMohon konfirmasi ketersediaan dan total pesanan.`;
     if(navigator.canShare?.({files:[file]}) && navigator.share){
       try{
         await navigator.share({title:'Pesanan ada in Project',text,files:[file]});
@@ -576,6 +627,55 @@ function CartPage({cart,setCart,navigate}){
     setMsg('PDF sudah diunduh dan WhatsApp dibuka. Lampirkan PDF tersebut pada chat admin.');
   };
 
+  const sendEmail=async()=>{
+    if(!validate())return;
+    const doc=buildPdf();
+    const blob=doc.output('blob');
+    const file=new File([blob],`Pesanan-ada-in-Project-${Date.now()}.pdf`,{type:'application/pdf'});
+    const subject=`Pesanan / Inquiry - ${customer.company}`;
+    const body=`Halo ada in Project,\n\nSaya ingin mengirim pesanan/inquiry berikut:\n\n${summaryText()}\n\nNama: ${customer.name}\nPerusahaan: ${customer.company}\nNo. WA: ${customer.phone}\nEmail: ${customer.email}\nAlamat: ${customer.address}\n\nCatatan: ${customer.notes||'-'}\n\nMohon konfirmasi ketersediaan dan total pesanan.`;
+
+    if(navigator.canShare?.({files:[file]}) && navigator.share){
+      try{
+        await navigator.share({title:subject,text:body,files:[file]});
+        setMsg('PDF siap dibagikan. Pilih aplikasi Email/Gmail pada menu Share.');
+        return;
+      }catch(e){
+        if(e?.name==='AbortError')return;
+      }
+    }
+
+    doc.save(file.name);
+    window.location.href=`mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setMsg('PDF sudah diunduh dan aplikasi email dibuka. Lampirkan PDF tersebut sebelum mengirim.');
+  };
+
+  const renderProductTable=(group)=>{
+    const unitSubtotal=group.items.reduce((sum,x)=>sum+(x.numericPrice!=null?x.numericPrice*x.qty:0),0);
+    return <div className="cart-table-wrap">
+      <table className="cart-product-table">
+        <thead><tr><th>No.</th><th>Nama Produk</th><th>Qty</th><th>Satuan</th><th>Harga</th><th>Jumlah</th><th></th></tr></thead>
+        <tbody>
+          {group.items.map((x,i)=><tr key={x.id}>
+            <td>{i+1}</td>
+            <td><div className="table-product-name">{x.image_url&&<img src={x.image_url} alt={x.title}/>}<span><b>{x.title}</b><small>{x.category}</small></span></div></td>
+            <td><div className="qty-control compact"><button onClick={()=>changeQty(x.id,-1)}><Minus size={14}/></button><span>{x.qty}</span><button onClick={()=>changeQty(x.id,1)}><Plus size={14}/></button></div></td>
+            <td>Unit</td>
+            <td>{x.numericPrice!=null?rupiahNumber(x.numericPrice):x.priceDisplay}</td>
+            <td><strong>{x.numericPrice!=null?rupiahNumber(x.numericPrice*x.qty):x.priceDisplay}</strong></td>
+            <td><button className="cart-remove icon-only" onClick={()=>remove(x.id)} title="Hapus"><Trash size={17}/></button></td>
+          </tr>)}
+          <tr className="table-total-row">
+            <td colSpan="2">Total</td>
+            <td>{group.items.reduce((n,x)=>n+x.qty,0)}</td>
+            <td></td><td></td>
+            <td>{rupiahNumber(unitSubtotal)}</td><td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  };
+
   return <section className="section cart-page"><div className="container">
     <div className="section-head">
       <div className="eyebrow gold">KERANJANG PESANAN</div>
@@ -588,35 +688,41 @@ function CartPage({cart,setCart,navigate}){
       <div className="cart-items">
         {grouped.map(group=><div className="cart-group" key={group.unit}>
           <div className="cart-group-title"><span>{unitLabel(group.unit)}</span><b>{group.items.length} item</b></div>
-          {group.items.map(x=><article className="cart-item" key={x.id}>
-            {x.image_url?<img src={x.image_url} alt={x.title}/>:<div className="cart-item-placeholder"><ClipboardList/></div>}
-            <div className="cart-item-copy">
-              <small>{x.category||'Item'}</small><h3>{x.title}</h3>
-              <p>{x.priceDisplay}</p>
-              <div className="qty-control"><button onClick={()=>changeQty(x.id,-1)}><Minus size={15}/></button><span>{x.qty}</span><button onClick={()=>changeQty(x.id,1)}><Plus size={15}/></button></div>
-            </div>
-            <div className="cart-item-right">
-              <strong>{x.numericPrice!=null?rupiahNumber(x.numericPrice*x.qty):x.priceDisplay}</strong>
-              <button className="cart-remove" onClick={()=>remove(x.id)}><Trash size={17}/> Hapus</button>
-            </div>
-          </article>)}
+          {(group.unit==='vape'||group.unit==='alat') ? renderProductTable(group) :
+            group.items.map(x=><article className="cart-item" key={x.id}>
+              <div className="cart-item-placeholder"><ClipboardList/></div>
+              <div className="cart-item-copy">
+                <small>{x.category||'Jasa'}</small><h3>{x.title}</h3>
+                <p>{x.priceDisplay}</p>
+                <div className="qty-control"><button onClick={()=>changeQty(x.id,-1)}><Minus size={15}/></button><span>{x.qty}</span><button onClick={()=>changeQty(x.id,1)}><Plus size={15}/></button></div>
+              </div>
+              <div className="cart-item-right">
+                <strong>{x.numericPrice!=null?rupiahNumber(x.numericPrice*x.qty):x.priceDisplay}</strong>
+                <button className="cart-remove" onClick={()=>remove(x.id)}><Trash size={17}/> Hapus</button>
+              </div>
+            </article>)
+          }
         </div>)}
         <button className="cart-clear" onClick={clear}>Kosongkan Keranjang</button>
       </div>
 
       <aside className="cart-summary">
         <h3>Data Pemesan</h3>
-        <label>Nama<input value={customer.name} onChange={e=>updateCustomer('name',e.target.value)} placeholder="Nama pemesan"/></label>
-        <label>Perusahaan<input value={customer.company} onChange={e=>updateCustomer('company',e.target.value)} placeholder="Nama PT / Toko / Instansi"/></label>
-        <label>No. WhatsApp<input value={customer.phone} onChange={e=>updateCustomer('phone',e.target.value)} placeholder="08xxxxxxxxxx"/></label>
-        <label>Alamat<textarea rows="3" value={customer.address} onChange={e=>updateCustomer('address',e.target.value)} placeholder="Alamat pengiriman / perusahaan"/></label>
-        <label>Catatan<textarea rows="3" value={customer.notes} onChange={e=>updateCustomer('notes',e.target.value)} placeholder="Catatan tambahan"/></label>
+        <p className="required-note">Semua data bertanda * wajib diisi sebelum pesanan dapat diproses.</p>
+        <label>Nama *<input required value={customer.name} onChange={e=>updateCustomer('name',e.target.value)} placeholder="Nama pemesan"/></label>
+        <label>Perusahaan *<input required value={customer.company} onChange={e=>updateCustomer('company',e.target.value)} placeholder="Nama PT / Toko / Instansi"/></label>
+        <label>No. WhatsApp *<input required value={customer.phone} onChange={e=>updateCustomer('phone',e.target.value)} placeholder="08xxxxxxxxxx"/></label>
+        <label>Email *<input type="email" required value={customer.email||''} onChange={e=>updateCustomer('email',e.target.value)} placeholder="nama@email.com"/></label>
+        <label>Alamat *<textarea required rows="3" value={customer.address} onChange={e=>updateCustomer('address',e.target.value)} placeholder="Alamat pengiriman / perusahaan"/></label>
+        <label>Catatan<textarea rows="3" value={customer.notes} onChange={e=>updateCustomer('notes',e.target.value)} placeholder="Catatan tambahan (opsional)"/></label>
         <div className="cart-total"><span>Total harga terhitung</span><strong>{rupiahNumber(numericTotal)}</strong>{hasNonNumeric&&<small>Belum termasuk item yang perlu penawaran.</small>}</div>
         <div className="cart-actions">
-          <button className="btn btn-primary" onClick={downloadPdf}><FileDown size={17}/> Download PDF</button>
-          <button className="btn btn-ghost" onClick={printPdf}><Printer size={17}/> Print / Save PDF</button>
-          <button className="btn btn-gold" onClick={sendWhatsApp}><Send size={17}/> Kirim via WhatsApp</button>
+          <button className="btn btn-primary" disabled={!requiredOk} onClick={downloadPdf}><FileDown size={17}/> Download PDF</button>
+          <button className="btn btn-ghost" disabled={!requiredOk} onClick={printPdf}><Printer size={17}/> Print / Save PDF</button>
+          <button className="btn btn-gold" disabled={!requiredOk} onClick={sendWhatsApp}><Send size={17}/> Kirim via WhatsApp</button>
+          <button className="btn btn-ghost" disabled={!requiredOk} onClick={sendEmail}><Mail size={17}/> Kirim via Email</button>
         </div>
+        {!requiredOk&&<div className="cart-required-warning">Lengkapi seluruh Data Pemesan untuk mengaktifkan tombol proses.</div>}
         {msg&&<div className="cart-msg">{msg}</div>}
       </aside>
     </div>}
