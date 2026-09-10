@@ -28,8 +28,21 @@ function isAdmin(request, env){
 export default {
   async fetch(request, env){
     const url=new URL(request.url);
+
+    if(url.pathname.startsWith('/media/')){
+      if(!env.MEDIA) return new Response('Media unavailable',{status:404});
+      const key=url.pathname.slice('/media/'.length);
+      const obj=await env.MEDIA.get(key);
+      if(!obj) return new Response('Not found',{status:404});
+      const h=new Headers();
+      obj.writeHttpMetadata(h);
+      h.set('etag',obj.httpEtag);
+      h.set('cache-control','public, max-age=86400');
+      return new Response(obj.body,{headers:h});
+    }
+
     if(!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    if(!env.DB) return json({error:'D1 binding DB belum tersedia. Deploy sekali lagi agar Cloudflare membuat resource.'},503);
+    if(!env.DB) return json({error:'D1 binding DB belum tersedia.'},503);
     await ensureDB(env.DB);
 
     if(url.pathname==='/api/health') return json({ok:true});
@@ -72,8 +85,6 @@ export default {
       await env.MEDIA.put(key, await file.arrayBuffer(), {httpMetadata:{contentType:file.type||'application/octet-stream'}});
       return json({ok:true,url:`/media/${key}`});
     }
-    const media=url.pathname.match(/^\/media\/(.+)$/);
-    if(media){ if(!env.MEDIA) return new Response('Media unavailable',{status:404}); const obj=await env.MEDIA.get(media[1]); if(!obj)return new Response('Not found',{status:404}); const h=new Headers(); obj.writeHttpMetadata(h); h.set('etag',obj.httpEtag); h.set('cache-control','public, max-age=86400'); return new Response(obj.body,{headers:h}); }
     return json({error:'Not found'},404);
   }
 }
