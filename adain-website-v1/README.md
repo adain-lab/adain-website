@@ -1,16 +1,11 @@
-# ada in Project V4.2 — Auth Fix
+# ada in Project V4.3 — Product Dropdowns
 
-Fix utama:
-- Login Admin dan `/api/admin-status` tidak lagi bergantung pada D1.
-- Sebelumnya `ensureDB()` dijalankan sebelum login, sehingga error database bisa membuat login tampil sebagai “Login gagal” walaupun password benar.
-- Sekarang autentikasi diperiksa lebih dulu.
-- Jika D1 bermasalah, endpoint content akan memberi pesan database terpisah.
+Update Admin Panel:
+- Kategori produk sekarang berupa dropdown dan otomatis mengikuti Unit.
+- ada in Vape: Liquid, Device, Cartridge, Accessories, Bundle.
+- ada in Alat: ATK, Kertas, Filing, Printing, Pantry, Cleaning, General Supplies.
+- Stok sekarang dropdown: Tersedia, Stok Terbatas, Pre-order, By Request, Habis.
+- Saat Unit diganti, kategori otomatis berpindah ke kategori default unit tersebut.
 
-Cara update:
-1. Replace isi folder GitHub `adain-website-v1` dengan isi folder ini.
-2. Commit.
-3. Tunggu Cloudflare deployment selesai.
-4. Buka `/api/admin-status` — harus mengembalikan `secretConfigured: true`.
-5. Ctrl+F5 website, lalu coba login lagi.
-
-Tidak perlu menghapus atau membuat ulang `ADMIN_PASSWORD`.
+Update:
+Replace isi folder GitHub `adain-website-v1`, commit, tunggu Cloudflare deploy, lalu Ctrl+F5.
