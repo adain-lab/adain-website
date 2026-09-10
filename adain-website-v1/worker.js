@@ -76,9 +76,8 @@ export default {
     }
 
     if(!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    if(!env.DB) return json({error:'D1 binding DB belum tersedia.'},503);
-    await ensureDB(env.DB);
 
+    // Auth/diagnostic endpoints MUST NOT depend on D1.
     if(url.pathname==='/api/health') return json({ok:true});
     if(url.pathname==='/api/admin-status' && request.method==='GET'){
       const secret=adminSecret(env);
@@ -93,6 +92,14 @@ export default {
         return json({ok:true,token:await signAdminToken(secret,ts)});
       }
       return unauthorized();
+    }
+
+    // Content endpoints need D1.
+    if(!env.DB) return json({error:'D1 binding DB belum tersedia.'},503);
+    try{
+      await ensureDB(env.DB);
+    }catch(err){
+      return json({error:'Database belum siap', detail:String(err?.message||err)},500);
     }
     if(url.pathname==='/api/content' && request.method==='GET'){
       const type=url.searchParams.get('type');
