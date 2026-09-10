@@ -2,7 +2,8 @@ const json = (data, status=200) => new Response(JSON.stringify(data), {status, h
 const allowedTypes = new Set(['product','experience','testimonial']);
 
 async function ensureDB(db){
-  await db.exec(`CREATE TABLE IF NOT EXISTS content (
+  // Pakai prepare().run() untuk DDL agar tidak terkena parser db.exec().
+  await db.prepare(`CREATE TABLE IF NOT EXISTS content (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,
     unit TEXT NOT NULL DEFAULT '',
@@ -15,12 +16,11 @@ async function ensureDB(db){
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-  );`);
+  )`).run();
 
-  // Migration aman untuk database lama:
-  // bila kolom sudah ada, error duplicate column cukup diabaikan.
+  // Tambah kolom active untuk database lama.
   try{
-    await db.exec(`ALTER TABLE content ADD COLUMN active INTEGER NOT NULL DEFAULT 1;`);
+    await db.prepare(`ALTER TABLE content ADD COLUMN active INTEGER NOT NULL DEFAULT 1`).run();
   }catch(err){
     const msg=String(err?.message||err).toLowerCase();
     if(!msg.includes('duplicate column') && !msg.includes('already exists')){
@@ -28,13 +28,13 @@ async function ensureDB(db){
     }
   }
 
-  await db.exec(`CREATE TABLE IF NOT EXISTS visits (
+  await db.prepare(`CREATE TABLE IF NOT EXISTS visits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     visit_day TEXT NOT NULL,
     visitor_hash TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(visit_day, visitor_hash)
-  );`);
+  )`).run();
 }
 
 function unauthorized(){return json({error:'Unauthorized'},401)}

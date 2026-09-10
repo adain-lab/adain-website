@@ -1,16 +1,14 @@
-# ada in Project V4.6.1 — D1 Migration Fix
+# ada in Project V4.6.2 — D1 DDL Fix
 
-Perbaikan:
-- Binding DB/R2 tetap sama.
-- Migrasi kolom `active` dibuat lebih aman untuk database lama.
-- Menghapus ketergantungan pada `PRAGMA table_info()` yang bisa bermasalah pada runtime tertentu.
-- Jika kolom `active` sudah ada, error duplicate column otomatis diabaikan.
-- Tabel visitor tetap dibuat otomatis.
-- Endpoint diagnosis baru: `/api/db-status`.
+Perbaikan inti:
+- Error D1 `incomplete input` diperbaiki.
+- Pembuatan tabel tidak lagi menggunakan `db.exec()`.
+- DDL sekarang memakai `db.prepare(...).run()` untuk kompatibilitas yang lebih stabil di Cloudflare D1.
+- Migrasi kolom `active` tetap otomatis.
+- Tabel `visits` tetap otomatis.
+- Semua fitur V4.6 tetap ada: CRUD, Aktif/Nonaktif, visitor counter, upload foto R2, Price Mode.
 
-Cara update:
-1. Replace isi folder GitHub `adain-website-v1`.
-2. Commit.
-3. Tunggu Cloudflare deploy.
-4. Buka `/api/db-status`.
-5. Jika `ok:true`, Admin sudah bisa simpan produk.
+Setelah deploy:
+1. Buka `/api/db-status`
+2. Hasil yang benar: `"ok": true`
+3. Setelah itu Admin sudah bisa Simpan/Edit/Hapus produk.
