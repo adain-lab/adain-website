@@ -87,22 +87,57 @@ function useContent(type, unit, fallback=[]) {
   return items;
 }
 
-function ProductVisual({type, index, image}) {
+function formatPrice(value){
+  const raw=String(value??'').trim();
+  if(!raw) return 'Info Produk';
+  const lower=raw.toLowerCase();
+  if(lower==='hubungi kami' || lower==='minta penawaran') return raw;
+  const digits=raw.replace(/[^\d]/g,'');
+  if(digits) return `Rp. ${Number(digits).toLocaleString('id-ID')}`;
+  return raw;
+}
+
+function ProductVisual({type, index, image, title}) {
   const iconsVape = [Package, ShoppingBag, Package, Boxes, ShoppingBag, Store];
   const iconsAlat = [Printer, PenTool, Boxes, Printer, Coffee, SprayCan];
   const Icon = type === 'vape' ? iconsVape[index % iconsVape.length] : iconsAlat[index % iconsAlat.length];
-  if(image) return <div className={`product-visual ${type} has-image`}><img src={image} alt="Foto produk"/></div>;
+  if(image) return <div className={`product-visual ${type} has-image`}><img src={image} alt={title||'Foto produk'}/></div>;
   return <div className={`product-visual ${type}`}><Icon size={48}/><span>{type === 'vape' ? 'PRODUCT' : 'OFFICE'}</span></div>
 }
 
+function ProductDetail({product,type,onClose}){
+  if(!product) return null;
+  const name=product.title||product.name||'Produk';
+  return <div className="product-modal-backdrop" onClick={onClose}>
+    <div className="product-modal" onClick={e=>e.stopPropagation()}>
+      <button className="product-modal-close" onClick={onClose} aria-label="Tutup"><X size={22}/></button>
+      <div className="product-modal-grid">
+        <ProductVisual type={type} index={0} image={product.image_url} title={name}/>
+        <div className="product-modal-copy">
+          <div className="product-meta">{product.brand||'ada in Project'} • {product.category||'Produk'}</div>
+          <h2>{name}</h2>
+          <div className="detail-badges"><span className="stock">{product.stock||'Tersedia'}</span></div>
+          <div className="detail-price">{formatPrice(product.price)}</div>
+          <p>{product.description||'Silakan hubungi kami untuk informasi lengkap mengenai produk ini.'}</p>
+          <a className="btn btn-gold" href={waLink(`Halo ada in Project, saya tertarik dengan ${name}. Mohon info lebih lanjut.`)} target="_blank" rel="noreferrer">
+            Tanya Produk <MessageCircle size={17}/>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
 function Catalog({type, products}) {
-  const categories = ['Semua', ...Array.from(new Set(products.map(p=>p.category)))];
+  const categories = ['Semua', ...Array.from(new Set(products.map(p=>p.category).filter(Boolean)))];
   const [category, setCategory] = useState('Semua');
   const [q, setQ] = useState('');
-  const filtered = useMemo(()=>products.filter(p =>
-    (category==='Semua' || p.category===category) &&
-    `${p.name} ${p.brand} ${p.category}`.toLowerCase().includes(q.toLowerCase())
-  ), [products, category, q]);
+  const [selected,setSelected]=useState(null);
+  const filtered = useMemo(()=>products.filter(p => {
+    const name=p.title||p.name||'';
+    return (category==='Semua' || p.category===category) &&
+      `${name} ${p.brand||''} ${p.category||''}`.toLowerCase().includes(q.toLowerCase());
+  }), [products, category, q]);
 
   return (
     <>
@@ -113,24 +148,24 @@ function Catalog({type, products}) {
         </div>
       </div>
       <div className="product-grid">
-        {filtered.map((p,i)=>(
-          <article className="product-card" key={`${p.name}-${i}`}>
-            <ProductVisual type={type} index={i} image={p.image_url}/>
+        {filtered.map((p,i)=>{
+          const name=p.title||p.name||'Produk';
+          return <article className="product-card clickable" key={`${p.id||name}-${i}`} onClick={()=>setSelected(p)}>
+            <ProductVisual type={type} index={i} image={p.image_url} title={name}/>
             <div className="product-body">
-              <div className="product-meta">{p.brand} • {p.category}</div>
-              <h3>{p.name}</h3>
-              <div className="stock">{p.stock}</div>
+              <div className="product-meta">{p.brand||''}{p.brand?' • ':''}{p.category||'Produk'}</div>
+              <h3>{name}</h3>
+              <div className="stock">{p.stock||'Tersedia'}</div>
               <div className="product-foot">
-                {p.price?<strong>{p.price}</strong>:<strong>Info Produk</strong>}
-                <a href={waLink(`Halo ada in Project, saya tertarik dengan ${p.name}. Mohon info lebih lanjut.`)} target="_blank" rel="noreferrer">
-                  Tanya <ChevronRight size={16}/>
-                </a>
+                <strong>{formatPrice(p.price)}</strong>
+                <button className="product-detail-link" onClick={(e)=>{e.stopPropagation();setSelected(p)}}>Detail <ChevronRight size={16}/></button>
               </div>
             </div>
           </article>
-        ))}
+        })}
       </div>
       {!filtered.length && <div className="empty-state">Produk tidak ditemukan.</div>}
+      <ProductDetail product={selected} type={type} onClose={()=>setSelected(null)}/>
     </>
   );
 }
