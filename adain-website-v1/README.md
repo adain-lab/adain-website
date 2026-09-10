@@ -1,20 +1,18 @@
-# ada in Project V5.0 — Required Buyer Data + Email + Unit Tables
+# ada in Project V5.1 — One-Time Cart + Order History + Customer Database
 
 Update:
-1. Data Pemesan wajib diisi sebelum proses:
-   - Nama
-   - Perusahaan
-   - No. WhatsApp
-   - Email
-   - Alamat
-   Catatan tetap opsional.
-2. Tombol Download PDF, Print/Save PDF, WhatsApp, dan Email nonaktif sampai data wajib lengkap.
-3. Tambah kirim via Email:
-   - perangkat yang mendukung Share API dapat membagikan PDF lewat aplikasi Email/Gmail;
-   - fallback desktop: PDF diunduh lalu aplikasi email dibuka dengan subject/body otomatis, pengguna tinggal melampirkan PDF.
-4. Keranjang ada in Vape dan ada in Alat tampil sebagai tabel:
-   No. | Nama Produk | Qty | Satuan | Harga | Jumlah
-   plus total per unit bisnis.
-5. Format tabel yang sama juga digunakan di PDF pesanan untuk unit Vape dan Alat.
-6. Accounting tetap berupa list jasa karena sifatnya inquiry/penawaran.
-7. Semua fitur sebelumnya tetap ada termasuk /admin, D1, R2, visitor counter, CRUD, dan detail produk.
+1. Keranjang tidak lagi disimpan di localStorage.
+   - Saat website direload, keranjang otomatis kosong.
+   - Cocok untuk pengunjung tanpa login / one-time order.
+2. Data pemesan pada checkout juga hanya berlaku pada sesi halaman saat itu.
+3. Setiap aksi proses (Download PDF, Print, WhatsApp, Email) otomatis mencatat pesanan ke D1.
+4. Checkout ID unik mencegah satu pesanan tercatat ganda saat pengguna menekan beberapa tombol.
+5. Admin memiliki menu baru:
+   - Pesanan: histori semua pesanan, detail item, total, status.
+   - Pemesan: database nama, perusahaan, WA, email, alamat, jumlah pesanan, tanggal terakhir.
+6. Status pesanan:
+   - Baru
+   - Diproses
+   - Tidak Diproses
+7. Customer dideduplikasi berdasarkan kombinasi No. WhatsApp + Email.
+8. Semua tabel database dibuat otomatis, tidak perlu SQL manual.

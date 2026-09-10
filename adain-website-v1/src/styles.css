@@ -751,3 +751,34 @@ footer{background:var(--navy);color:white;padding:38px 0 18px}.footer-grid{displ
 @media(max-width:760px){
   .cart-product-table{min-width:700px}
 }
+
+
+/* ===== V5.1 ORDER HISTORY + CUSTOMER DB ===== */
+.admin-orders-table-wrap{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:auto}
+.admin-orders-table{width:100%;min-width:1050px;border-collapse:collapse}
+.admin-orders-table th,.admin-orders-table td{padding:13px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:12px;vertical-align:middle}
+.admin-orders-table th{background:#f7f9fc;color:var(--navy);font-weight:900}
+.admin-orders-table select{border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff;font-weight:800;color:var(--navy)}
+.order-detail-button{border:1px solid var(--gold);background:#fff;color:var(--gold);border-radius:10px;padding:7px 10px;font-weight:800;cursor:pointer}
+.order-detail-modal{position:relative;width:min(900px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:26px;box-shadow:0 30px 90px rgba(0,0,0,.28);padding:34px}
+.order-detail-head h2{margin:6px 0 10px;color:var(--navy);font-size:34px}
+.order-status{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900}
+.order-status.baru{background:#fff4dd;color:#8a6000}.order-status.diproses{background:#edf8f0;color:#26733b}.order-status.tidak-diproses{background:#fff0ef;color:#b42318}
+.order-customer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0}
+.order-customer-grid>div{padding:12px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;gap:3px}
+.order-customer-grid .wide{grid-column:1/-1}
+.order-customer-grid small{color:var(--muted);font-size:10px}.order-customer-grid b{color:var(--navy);font-size:13px}
+.order-detail-items{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.order-detail-item{display:grid;grid-template-columns:30px 1fr 60px 150px;gap:12px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+.order-detail-item:last-child{border-bottom:0}
+.order-detail-item div{display:flex;flex-direction:column}.order-detail-item small{color:var(--gold);font-size:10px;font-weight:800}.order-detail-item b{color:var(--navy)}
+.order-detail-item em{font-style:normal}.order-detail-item strong{text-align:right;color:var(--navy)}
+.order-detail-total{display:flex;justify-content:flex-end;gap:20px;align-items:center;padding-top:18px}.order-detail-total span{color:var(--muted)}.order-detail-total strong{font-size:24px;color:var(--navy)}
+.customer-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.customer-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;grid-template-columns:50px 1fr auto;gap:14px;align-items:center}
+.customer-avatar{width:50px;height:50px;border-radius:50%;background:#f2f5f9;color:var(--gold);display:grid;place-items:center;font-weight:900;font-size:20px}
+.customer-card h3{margin:0 0 3px;color:var(--navy)}.customer-card p{margin:0 0 7px;color:var(--muted)}
+.customer-card span,.customer-card small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.customer-stats{text-align:right}.customer-stats b{display:block;font-size:24px;color:var(--navy)}.customer-stats span{font-weight:800;color:var(--gold)}
+@media(max-width:900px){.customer-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.order-customer-grid{grid-template-columns:1fr}.order-customer-grid .wide{grid-column:auto}.order-detail-item{grid-template-columns:24px 1fr}.order-detail-item em,.order-detail-item strong{grid-column:2;text-align:left}.customer-card{grid-template-columns:44px 1fr}.customer-stats{grid-column:2;text-align:left}}

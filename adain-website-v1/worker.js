@@ -44,6 +44,53 @@ async function ensureDB(db){
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(visit_day, visitor_hash)
   )`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    company TEXT NOT NULL DEFAULT '',
+    phone TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    address TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    total_orders INTEGER NOT NULL DEFAULT 0,
+    first_order_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_order_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(phone, email)
+  )`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    checkout_id TEXT NOT NULL UNIQUE,
+    customer_id INTEGER,
+    customer_name TEXT NOT NULL,
+    company TEXT NOT NULL DEFAULT '',
+    phone TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    address TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'Baru',
+    numeric_total INTEGER NOT NULL DEFAULT 0,
+    has_quote_items INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+
+  await db.prepare(`CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL,
+    unit TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'product',
+    source_id TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT '',
+    qty INTEGER NOT NULL DEFAULT 1,
+    price_text TEXT NOT NULL DEFAULT '',
+    numeric_price INTEGER,
+    line_total INTEGER,
+    description TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`).run();
 }
 
 function unauthorized(){return json({error:'Unauthorized'},401)}
@@ -146,6 +193,79 @@ export default {
     }catch(err){
       return json({error:'Database belum siap', detail:String(err?.message||err)},500);
     }
+
+    if(url.pathname==='/api/orders' && request.method==='POST'){
+      const b=await request.json().catch(()=>({}));
+      const c=b.customer||{};
+      const items=Array.isArray(b.items)?b.items:[];
+      if(!b.checkout_id || !String(c.name||'').trim() || !String(c.company||'').trim() || !String(c.phone||'').trim() || !String(c.email||'').trim() || !String(c.address||'').trim() || !items.length){
+        return json({error:'Data pesanan belum lengkap'},400);
+      }
+
+      const existing=await env.DB.prepare(`SELECT id,status FROM orders WHERE checkout_id=?`).bind(String(b.checkout_id)).first();
+      if(existing) return json({ok:true,order_id:existing.id,status:existing.status,existing:true});
+
+      let customer=await env.DB.prepare(`SELECT id FROM customers WHERE phone=? AND email=?`).bind(String(c.phone).trim(),String(c.email).trim()).first();
+      if(customer){
+        await env.DB.prepare(`UPDATE customers SET name=?,company=?,address=?,notes=?,total_orders=total_orders+1,last_order_at=CURRENT_TIMESTAMP WHERE id=?`)
+          .bind(String(c.name).trim(),String(c.company).trim(),String(c.address).trim(),String(c.notes||''),customer.id).run();
+      }else{
+        const cr=await env.DB.prepare(`INSERT INTO customers(name,company,phone,email,address,notes,total_orders) VALUES(?,?,?,?,?,?,1)`)
+          .bind(String(c.name).trim(),String(c.company).trim(),String(c.phone).trim(),String(c.email).trim(),String(c.address).trim(),String(c.notes||'')).run();
+        customer={id:cr.meta?.last_row_id};
+      }
+
+      const numericTotal=items.reduce((sum,x)=>{
+        const p=Number.isFinite(Number(x.numericPrice)) ? Number(x.numericPrice) : null;
+        const q=Math.max(1,Number(x.qty)||1);
+        return sum + (p!=null ? p*q : 0);
+      },0);
+      const hasQuote=items.some(x=>x.numericPrice==null);
+
+      const or=await env.DB.prepare(`INSERT INTO orders(checkout_id,customer_id,customer_name,company,phone,email,address,notes,status,numeric_total,has_quote_items) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+        .bind(String(b.checkout_id),customer.id,String(c.name).trim(),String(c.company).trim(),String(c.phone).trim(),String(c.email).trim(),String(c.address).trim(),String(c.notes||''),'Baru',numericTotal,hasQuote?1:0).run();
+      const orderId=or.meta?.last_row_id;
+
+      for(const x of items){
+        const q=Math.max(1,Number(x.qty)||1);
+        const p=x.numericPrice==null?null:Number(x.numericPrice);
+        await env.DB.prepare(`INSERT INTO order_items(order_id,unit,kind,source_id,title,category,qty,price_text,numeric_price,line_total,description) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+          .bind(orderId,String(x.unit||''),String(x.kind||'product'),String(x.sourceId||''),String(x.title||''),String(x.category||''),q,String(x.priceDisplay||x.price||''),p,p==null?null:p*q,String(x.description||'')).run();
+      }
+      return json({ok:true,order_id:orderId,status:'Baru'});
+    }
+
+    if(url.pathname==='/api/admin/orders' && request.method==='GET'){
+      if(!await verifyAdminToken(request,env)) return unauthorized();
+      const {results}=await env.DB.prepare(`SELECT o.*, (SELECT COUNT(*) FROM order_items i WHERE i.order_id=o.id) AS item_count FROM orders o ORDER BY o.id DESC`).all();
+      return json(results||[]);
+    }
+
+    const orderDetail=url.pathname.match(/^\/api\/admin\/orders\/(\d+)$/);
+    if(orderDetail && request.method==='GET'){
+      if(!await verifyAdminToken(request,env)) return unauthorized();
+      const order=await env.DB.prepare(`SELECT * FROM orders WHERE id=?`).bind(Number(orderDetail[1])).first();
+      if(!order) return json({error:'Pesanan tidak ditemukan'},404);
+      const {results}=await env.DB.prepare(`SELECT * FROM order_items WHERE order_id=? ORDER BY id ASC`).bind(Number(orderDetail[1])).all();
+      return json({order,items:results||[]});
+    }
+
+    const orderStatus=url.pathname.match(/^\/api\/admin\/orders\/(\d+)\/status$/);
+    if(orderStatus && request.method==='PUT'){
+      if(!await verifyAdminToken(request,env)) return unauthorized();
+      const b=await request.json().catch(()=>({}));
+      const allowed=new Set(['Baru','Diproses','Tidak Diproses']);
+      if(!allowed.has(b.status)) return json({error:'Status tidak valid'},400);
+      await env.DB.prepare(`UPDATE orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(b.status,Number(orderStatus[1])).run();
+      return json({ok:true});
+    }
+
+    if(url.pathname==='/api/admin/customers' && request.method==='GET'){
+      if(!await verifyAdminToken(request,env)) return unauthorized();
+      const {results}=await env.DB.prepare(`SELECT * FROM customers ORDER BY last_order_at DESC,id DESC`).all();
+      return json(results||[]);
+    }
+
     if(url.pathname==='/api/content' && request.method==='GET'){
       const type=url.searchParams.get('type');
       const unit=url.searchParams.get('unit');

@@ -478,9 +478,11 @@ function AlatPage({onAddCart}) {
 
 
 function CartPage({cart,setCart,navigate}){
-  const [customer,setCustomer]=useState(()=>JSON.parse(localStorage.getItem('aip_customer')||'{"name":"","company":"","phone":"","email":"","address":"","notes":""}'));
+  const [customer,setCustomer]=useState({name:'',company:'',phone:'',email:'',address:'',notes:''});
   const [msg,setMsg]=useState('');
-  const updateCustomer=(k,v)=>{const next={...customer,[k]:v};setCustomer(next);localStorage.setItem('aip_customer',JSON.stringify(next))};
+  const [checkoutId]=useState(()=>crypto.randomUUID());
+  const [savedOrderId,setSavedOrderId]=useState(null);
+  const updateCustomer=(k,v)=>setCustomer(prev=>({...prev,[k]:v}));
   const grouped=['accounting','vape','alat'].map(unit=>({unit,items:cart.filter(x=>x.unit===unit)})).filter(g=>g.items.length);
   const numericTotal=cart.reduce((sum,x)=>sum+(x.numericPrice!=null?x.numericPrice*x.qty:0),0);
   const hasNonNumeric=cart.some(x=>x.numericPrice==null);
@@ -501,6 +503,19 @@ function CartPage({cart,setCart,navigate}){
     }
     setMsg('');
     return true;
+  };
+
+  const persistOrder=async()=>{
+    if(savedOrderId)return savedOrderId;
+    const r=await fetch('/api/orders',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({checkout_id:checkoutId,customer,items:cart})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'Gagal merekam pesanan');
+    setSavedOrderId(d.order_id);
+    return d.order_id;
   };
 
   const buildPdf=()=>{
@@ -591,13 +606,18 @@ function CartPage({cart,setCart,navigate}){
     return doc;
   };
 
-  const downloadPdf=()=>{
+  const downloadPdf=async()=>{
     if(!validate())return;
-    buildPdf().save(`Pesanan-ada-in-Project-${Date.now()}.pdf`);
+    try{
+      const orderId=await persistOrder();
+      buildPdf().save(`Pesanan-${String(orderId).padStart(5,'0')}-ada-in-Project.pdf`);
+      setMsg(`Pesanan #${String(orderId).padStart(5,'0')} sudah tercatat di Admin.`);
+    }catch(e){setMsg(e.message||'Gagal merekam pesanan.')}
   };
 
-  const printPdf=()=>{
+  const printPdf=async()=>{
     if(!validate())return;
+    try{await persistOrder()}catch(e){setMsg(e.message||'Gagal merekam pesanan.');return}
     const doc=buildPdf();
     const url=URL.createObjectURL(doc.output('blob'));
     const win=window.open(url,'_blank');
@@ -609,6 +629,8 @@ function CartPage({cart,setCart,navigate}){
 
   const sendWhatsApp=async()=>{
     if(!validate())return;
+    let orderId;
+    try{orderId=await persistOrder()}catch(e){setMsg(e.message||'Gagal merekam pesanan.');return}
     const doc=buildPdf();
     const blob=doc.output('blob');
     const file=new File([blob],`Pesanan-ada-in-Project-${Date.now()}.pdf`,{type:'application/pdf'});
@@ -629,10 +651,12 @@ function CartPage({cart,setCart,navigate}){
 
   const sendEmail=async()=>{
     if(!validate())return;
+    let orderId;
+    try{orderId=await persistOrder()}catch(e){setMsg(e.message||'Gagal merekam pesanan.');return}
     const doc=buildPdf();
     const blob=doc.output('blob');
     const file=new File([blob],`Pesanan-ada-in-Project-${Date.now()}.pdf`,{type:'application/pdf'});
-    const subject=`Pesanan / Inquiry - ${customer.company}`;
+    const subject=`Pesanan / Inquiry #${String(orderId).padStart(5,'0')} - ${customer.company}`;
     const body=`Halo ada in Project,\n\nSaya ingin mengirim pesanan/inquiry berikut:\n\n${summaryText()}\n\nNama: ${customer.name}\nPerusahaan: ${customer.company}\nNo. WA: ${customer.phone}\nEmail: ${customer.email}\nAlamat: ${customer.address}\n\nCatatan: ${customer.notes||'-'}\n\nMohon konfirmasi ketersediaan dan total pesanan.`;
 
     if(navigator.canShare?.({files:[file]}) && navigator.share){
@@ -731,20 +755,38 @@ function CartPage({cart,setCart,navigate}){
 
 function AdminPage(){
   const [token,setToken]=useState(()=>sessionStorage.getItem('aip_admin')||'');
-  const [password,setPassword]=useState(''); const [items,setItems]=useState([]); const [tab,setTab]=useState('product'); const [msg,setMsg]=useState('');
+  const [password,setPassword]=useState(''); const [items,setItems]=useState([]); const [orders,setOrders]=useState([]); const [customers,setCustomers]=useState([]); const [orderDetail,setOrderDetail]=useState(null); const [tab,setTab]=useState('product'); const [msg,setMsg]=useState('');
   const blank={id:null,type:'product',unit:'vape',title:'',category:'Liquid',price:'',stock:'Tersedia',description:'',image_url:'',sort_order:0,active:1,client_name:''};
   const [form,setForm]=useState(blank);
-  const load=()=>fetch('/api/content?all=1',{headers:{authorization:`Bearer ${token}`}}).then(r=>r.json()).then(x=>setItems(Array.isArray(x)?x:[])).catch(()=>setItems([]));
-  React.useEffect(()=>{if(token)load()},[token]);
+  const authHeaders=()=>({authorization:`Bearer ${token}`});
+  const load=()=>fetch('/api/content?all=1',{headers:authHeaders()}).then(r=>r.json()).then(x=>setItems(Array.isArray(x)?x:[])).catch(()=>setItems([]));
+  const loadOrders=()=>fetch('/api/admin/orders',{headers:authHeaders()}).then(r=>r.json()).then(x=>setOrders(Array.isArray(x)?x:[])).catch(()=>setOrders([]));
+  const loadCustomers=()=>fetch('/api/admin/customers',{headers:authHeaders()}).then(r=>r.json()).then(x=>setCustomers(Array.isArray(x)?x:[])).catch(()=>setCustomers([]));
+  React.useEffect(()=>{if(token){load();loadOrders();loadCustomers()}},[token]);
   const login=async(e)=>{e.preventDefault();setMsg('Memeriksa...');try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});if(r.ok){const d=await r.json();sessionStorage.setItem('aip_admin',d.token);setToken(d.token);setPassword('');setMsg('')}else if(r.status===401){setMsg('Password admin salah.')}else{setMsg('Login gagal. Coba refresh halaman.')}}catch{setMsg('Tidak dapat terhubung ke server.')}};
   const save=async(e)=>{e.preventDefault();const url=form.id?`/api/content/${form.id}`:'/api/content';const r=await fetch(url,{method:form.id?'PUT':'POST',headers:{'content-type':'application/json','authorization':`Bearer ${token}`},body:JSON.stringify({...form,price:(form.priceMode==='contact'?'Hubungi Kami':form.priceMode==='quote'?'Minta Penawaran':form.priceMode==='hidden'?'':form.price)})});if(r.ok){setMsg('Data berhasil disimpan.');setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''});load()}else setMsg('Gagal menyimpan data.')};
   const del=async(x)=>{if(!confirm(`Yakin ingin menghapus "${x.title}"? Data dan foto produk akan dihapus.`))return;const r=await fetch(`/api/content/${x.id}`,{method:'DELETE',headers:{authorization:`Bearer ${token}`}});if(r.ok){setMsg('Data berhasil dihapus.');if(form.id===x.id)setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',active:1});load()}else setMsg('Gagal menghapus data.');};
   const upload=async(file)=>{if(!file)return;setMsg('Mengupload foto...');const fd=new FormData();fd.append('file',file);const r=await fetch('/api/upload',{method:'POST',headers:{authorization:`Bearer ${token}`},body:fd});const d=await r.json();if(r.ok){setForm(f=>({...f,image_url:d.url}));setMsg('Foto berhasil diupload.')}else setMsg(d.error||'Upload gagal.')};
   const edit=x=>{setTab(x.type);setForm({...x,active:Number(x.active)!==0?1:0,priceMode:x.price==='Hubungi Kami'?'contact':x.price==='Minta Penawaran'?'quote':!x.price?'hidden':'show'});window.scrollTo({top:0,behavior:'smooth'})};
+  const openOrder=async(id)=>{
+    const r=await fetch(`/api/admin/orders/${id}`,{headers:authHeaders()});
+    const d=await r.json().catch(()=>null);
+    if(r.ok)setOrderDetail(d);
+  };
+  const setOrderStatus=async(id,status)=>{
+    const r=await fetch(`/api/admin/orders/${id}/status`,{method:'PUT',headers:{...authHeaders(),'content-type':'application/json'},body:JSON.stringify({status})});
+    if(r.ok){setMsg('Status pesanan diperbarui.');loadOrders();if(orderDetail?.order?.id===id)setOrderDetail(prev=>({...prev,order:{...prev.order,status}}))}
+    else setMsg('Gagal memperbarui status pesanan.');
+  };
   const logout=()=>{sessionStorage.removeItem('aip_admin');setToken('')};
   if(!token) return <section className="admin-login"><form onSubmit={login} className="login-card"><BrandMark/><h1>Admin Panel</h1><p>Masuk untuk mengelola produk, experience dan testimoni.</p><input type="password" placeholder="Password admin" value={password} onChange={e=>setPassword(e.target.value)} required/><button className="btn btn-primary"><LogIn size={18}/> Masuk</button>{msg&&<small>{msg}</small>}</form></section>;
   const visible=items.filter(x=>x.type===tab);
-  return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button className={tab==='product'?'active':''} onClick={()=>{setTab('product');setForm({...blank,type:'product',unit:'vape',category:'Liquid',stock:'Tersedia',priceMode:'show'})}}><Package/>Produk</button><button className={tab==='experience'?'active':''} onClick={()=>{setTab('experience');setForm({...blank,type:'experience',unit:'accounting',category:accountingCategories[0],client_name:''})}}><BriefcaseBusiness/>Experience</button><button className={tab==='testimonial'?'active':''} onClick={()=>{setTab('testimonial');setForm({...blank,type:'testimonial',unit:'accounting',category:accountingCategories[0],client_name:''})}}><Star/>Testimoni</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>{tab==='product'?'Produk':tab==='experience'?'Experience':'Testimoni'}</h1></div><div className="admin-count">{visible.length} data</div></div><div className="admin-grid"><form className="admin-form" onSubmit={save}><h2>{form.id?'Edit':'Tambah'} {tab}</h2><label>Unit<select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value,category:tab==='product'?(e.target.value==='vape'?'Liquid':'ATK'):form.category})}>{tab==='product'?<><option value="vape">ada in Vape</option><option value="alat">ada in Alat</option></>:<option value="accounting">ada in Accounting</option>}</select></label>
+
+  if(tab==='orders') return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button onClick={()=>setTab('product')}><Package/>Produk</button><button onClick={()=>setTab('experience')}><BriefcaseBusiness/>Experience</button><button onClick={()=>setTab('testimonial')}><Star/>Testimoni</button><button className="active" onClick={()=>setTab('orders')}><ClipboardList/>Pesanan</button><button onClick={()=>setTab('customers')}><Users/>Pemesan</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>Histori Pesanan</h1></div><div className="admin-count">{orders.length} pesanan</div></div><div className="admin-orders-table-wrap"><table className="admin-orders-table"><thead><tr><th>No.</th><th>Tanggal</th><th>Pemesan</th><th>Perusahaan</th><th>Kontak</th><th>Item</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>{orders.map(o=><tr key={o.id}><td>#{String(o.id).padStart(5,'0')}</td><td>{new Date(o.created_at+'Z').toLocaleString('id-ID')}</td><td><b>{o.customer_name}</b></td><td>{o.company}</td><td><small>{o.phone}<br/>{o.email}</small></td><td>{o.item_count}</td><td>{rupiahNumber(o.numeric_total)}</td><td><select value={o.status} onChange={e=>setOrderStatus(o.id,e.target.value)}><option>Baru</option><option>Diproses</option><option>Tidak Diproses</option></select></td><td><button className="order-detail-button" onClick={()=>openOrder(o.id)}>Detail</button></td></tr>)}</tbody></table></div>{msg&&<div className="admin-msg">{msg}</div>}</div>{orderDetail&&<div className="product-modal-backdrop" onClick={()=>setOrderDetail(null)}><div className="order-detail-modal" onClick={e=>e.stopPropagation()}><button className="product-modal-close" onClick={()=>setOrderDetail(null)}><X/></button><div className="order-detail-head"><div className="eyebrow gold">DETAIL PESANAN</div><h2>Pesanan #{String(orderDetail.order.id).padStart(5,'0')}</h2><span className={`order-status ${orderDetail.order.status.toLowerCase().replace(/\s/g,'-')}`}>{orderDetail.order.status}</span></div><div className="order-customer-grid"><div><small>Nama</small><b>{orderDetail.order.customer_name}</b></div><div><small>Perusahaan</small><b>{orderDetail.order.company}</b></div><div><small>WhatsApp</small><b>{orderDetail.order.phone}</b></div><div><small>Email</small><b>{orderDetail.order.email}</b></div><div className="wide"><small>Alamat</small><b>{orderDetail.order.address}</b></div></div><div className="order-detail-items">{orderDetail.items.map((x,i)=><div className="order-detail-item" key={x.id}><span>{i+1}</span><div><small>{unitLabel(x.unit)} • {x.category}</small><b>{x.title}</b></div><em>x{x.qty}</em><strong>{x.line_total!=null?rupiahNumber(x.line_total):x.price_text}</strong></div>)}</div><div className="order-detail-total"><span>Total harga terhitung</span><strong>{rupiahNumber(orderDetail.order.numeric_total)}</strong></div></div></div>}</section>;
+
+  if(tab==='customers') return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button onClick={()=>setTab('product')}><Package/>Produk</button><button onClick={()=>setTab('experience')}><BriefcaseBusiness/>Experience</button><button onClick={()=>setTab('testimonial')}><Star/>Testimoni</button><button onClick={()=>setTab('orders')}><ClipboardList/>Pesanan</button><button className="active" onClick={()=>setTab('customers')}><Users/>Pemesan</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>Database Pemesan</h1></div><div className="admin-count">{customers.length} pemesan</div></div><div className="customer-grid">{customers.map(c=><article className="customer-card" key={c.id}><div className="customer-avatar">{(c.name||'?').slice(0,1).toUpperCase()}</div><div><h3>{c.name}</h3><p>{c.company}</p><span>{c.phone}</span><span>{c.email}</span><small>{c.address}</small></div><div className="customer-stats"><b>{c.total_orders}</b><span>Pesanan</span><small>Terakhir {new Date(c.last_order_at+'Z').toLocaleDateString('id-ID')}</small></div></article>)}</div></div></section>;
+
+  return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button className={tab==='product'?'active':''} onClick={()=>{setTab('product');setForm({...blank,type:'product',unit:'vape',category:'Liquid',stock:'Tersedia',priceMode:'show'})}}><Package/>Produk</button><button className={tab==='experience'?'active':''} onClick={()=>{setTab('experience');setForm({...blank,type:'experience',unit:'accounting',category:accountingCategories[0],client_name:''})}}><BriefcaseBusiness/>Experience</button><button className={tab==='testimonial'?'active':''} onClick={()=>{setTab('testimonial');setForm({...blank,type:'testimonial',unit:'accounting',category:accountingCategories[0],client_name:''})}}><Star/>Testimoni</button><button className={tab==='orders'?'active':''} onClick={()=>{setTab('orders');loadOrders()}}><ClipboardList/>Pesanan</button><button className={tab==='customers'?'active':''} onClick={()=>{setTab('customers');loadCustomers()}}><Users/>Pemesan</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>{tab==='product'?'Produk':tab==='experience'?'Experience':'Testimoni'}</h1></div><div className="admin-count">{visible.length} data</div></div><div className="admin-grid"><form className="admin-form" onSubmit={save}><h2>{form.id?'Edit':'Tambah'} {tab}</h2><label>Unit<select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value,category:tab==='product'?(e.target.value==='vape'?'Liquid':'ATK'):form.category})}>{tab==='product'?<><option value="vape">ada in Vape</option><option value="alat">ada in Alat</option></>:<option value="accounting">ada in Accounting</option>}</select></label>
 {tab!=='product'&&<label>Nama Client<input value={form.client_name||''} onChange={e=>setForm({...form,client_name:e.target.value})} placeholder="Contoh: PT Maju Jaya Sejahtera"/></label>}
 <label>{tab==='product'?'Nama / Judul':'Nama Project / Jasa'}<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder={tab==='product'?'Nama produk':'Contoh: Penyusunan Laporan Keuangan Bulanan'} required/></label>
 <div className="form-row">
@@ -777,9 +819,7 @@ function AdminPage(){
 
 function App() {
   const [page,setPage] = useState(()=>pathToPage(window.location.pathname));
-  const [cart,setCart] = useState(()=>{try{return JSON.parse(localStorage.getItem('aip_cart')||'[]')}catch{return []}});
-
-  React.useEffect(()=>{localStorage.setItem('aip_cart',JSON.stringify(cart))},[cart]);
+  const [cart,setCart] = useState([]);
   React.useEffect(()=>{
     const pop=()=>setPage(pathToPage(window.location.pathname));
     window.addEventListener('popstate',pop);
