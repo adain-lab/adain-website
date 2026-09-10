@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import './styles.css';
 
-const WA_URL = 'https://wa.me/6281234567890';
+const WA_URL = 'https://wa.me/62818777802';
 const TOKOPEDIA_URL = '#';
 
 function BrandMark({ compact = false }) {
@@ -98,9 +98,9 @@ function App() {
           <div className="hero-glow hero-glow-2"></div>
           <div className="container hero-grid">
             <div className="hero-copy">
-              <div className="eyebrow">ADA IN</div>
+              <div className="eyebrow">ADA IN PROJECT</div>
               <h1>Satu Brand,<br/><span>Berbagai Solusi</span></h1>
-              <p>ada in adalah ekosistem bisnis yang hadir untuk memberikan solusi terbaik di berbagai kebutuhan Anda — dari keuangan, retail hingga kebutuhan kantor.</p>
+              <p>ada in Project adalah ekosistem bisnis yang hadir untuk memberikan solusi terbaik di berbagai kebutuhan Anda — dari keuangan, retail hingga kebutuhan kantor.</p>
               <div className="trust-line">TERPERCAYA • PROFESIONAL • BERKEMBANG BERSAMA</div>
               <div className="hero-actions">
                 <button className="btn btn-gold" onClick={()=>go('#units')}>Lihat Unit Bisnis <ArrowRight size={18}/></button>
@@ -122,7 +122,7 @@ function App() {
             <div className="section-head center">
               <div className="eyebrow gold">UNIT BISNIS KAMI</div>
               <h2>Temukan Solusi yang Anda Butuhkan</h2>
-              <p>Tiga unit bisnis dengan identitas berbeda, tetap dalam satu keluarga <strong>ada in</strong>.</p>
+              <p>Tiga unit bisnis dengan identitas berbeda, tetap dalam satu keluarga <strong>ada in Project</strong>.</p>
             </div>
             <div className="unit-grid">
               {units.map(({id,title,kicker,desc,cta,icon:Icon,href}) => (
@@ -204,11 +204,11 @@ function App() {
         <section id="about" className="section about-section">
           <div className="container about-grid">
             <div>
-              <div className="eyebrow gold">TENTANG ADA IN</div>
+              <div className="eyebrow gold">TENTANG ADA IN PROJECT</div>
               <h2>Lebih dari Sekadar Bisnis</h2>
-              <p><strong>ada in</strong> hadir sebagai ekosistem bisnis yang menghubungkan kebutuhan profesional dan gaya hidup dalam satu identitas. Kami tumbuh melalui integritas, pelayanan, dan solusi yang relevan.</p>
+              <p><strong>ada in Project</strong> hadir sebagai ekosistem bisnis yang menghubungkan kebutuhan profesional dan gaya hidup dalam satu identitas. Kami tumbuh melalui integritas, pelayanan, dan solusi yang relevan.</p>
             </div>
-            <blockquote>“Karena setiap kebutuhan, selalu ada solusinya di ada in.”</blockquote>
+            <blockquote>“Karena setiap kebutuhan, selalu ada solusinya di ada in Project.”</blockquote>
           </div>
         </section>
 
@@ -219,8 +219,8 @@ function App() {
               <h2>Ada yang Bisa Kami Bantu?</h2>
               <p>Hubungi tim ada in untuk konsultasi layanan, permintaan penawaran, atau informasi mengenai unit bisnis kami.</p>
               <div className="contact-list">
-                <a href={WA_URL}><Phone size={18}/> 0812-3456-7890</a>
-                <a href="mailto:hello@adain.id"><Mail size={18}/> hello@adain.id</a>
+                <a href={WA_URL} target="_blank" rel="noreferrer"><Phone size={18}/> 0818 777 802</a>
+                <a href="mailto:projectadain@gmail.com"><Mail size={18}/> projectadain@gmail.com</a>
                 <span><MapPin size={18}/> Indonesia</span>
               </div>
             </div>
@@ -235,7 +235,7 @@ function App() {
 
       <footer>
         <div className="container footer-grid">
-          <div><BrandMark compact/><p>One Brand. Multiple Solutions.</p></div>
+          <div><BrandMark compact/><p>ada in Project • One Brand. Multiple Solutions.</p></div>
           <div className="footer-links">
             <button onClick={()=>go('#home')}>Home</button>
             <button onClick={()=>go('#units')}>Business Units</button>
@@ -244,7 +244,7 @@ function App() {
           </div>
           <div className="socials"><span className="social-text">IG</span><span className="social-text">in</span></div>
         </div>
-        <div className="container copyright">© 2026 ada in. All rights reserved.</div>
+        <div className="container copyright">© 2026 ada in Project. All rights reserved.</div>
       </footer>
     </div>
   );
