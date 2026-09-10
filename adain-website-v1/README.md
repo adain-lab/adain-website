@@ -21,15 +21,23 @@ npm run build
 
 Output build berada di folder `dist`.
 
-## Deploy ke Cloudflare Pages
+## Deploy ke Cloudflare Workers (Static Assets)
 
-1. Push semua file project ini ke repository GitHub `adain-lab/adain-website`.
-2. Di Cloudflare buka **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-3. Pilih repository `adain-lab/adain-website`.
-4. Framework preset: **Vite**.
-5. Build command: `npm run build`.
-6. Build output directory: `dist`.
-7. Klik **Save and Deploy**.
+Project ini memakai Cloudflare Workers Static Assets melalui `wrangler.jsonc`.
+
+### Build command di Cloudflare
+
+```bash
+cd adain-website-v1 && npm install && npm run build
+```
+
+### Deploy command di Cloudflare
+
+```bash
+cd adain-website-v1 && npx wrangler deploy
+```
+
+`wrangler.jsonc` akan mengambil hasil build dari folder `dist` dan mempublikasikannya sebagai static website.
 
 ## Yang perlu diganti sebelum go-live
 
