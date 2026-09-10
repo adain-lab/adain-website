@@ -1,11 +1,15 @@
-# ada in Project V4.3 — Product Dropdowns
+# ada in Project V4.5 — Home Redesign
 
-Update Admin Panel:
-- Kategori produk sekarang berupa dropdown dan otomatis mengikuti Unit.
-- ada in Vape: Liquid, Device, Cartridge, Accessories, Bundle.
-- ada in Alat: ATK, Kertas, Filing, Printing, Pantry, Cleaning, General Supplies.
-- Stok sekarang dropdown: Tersedia, Stok Terbatas, Pre-order, By Request, Habis.
-- Saat Unit diganti, kategori otomatis berpindah ke kategori default unit tersebut.
+V4.5 mempertahankan seluruh fungsi V4.4 dan merombak tampilan Home agar lebih dekat dengan referensi:
+- Hero lebih compact dan premium.
+- Benefit/keunggulan berada di sisi kanan hero pada desktop.
+- Unit bisnis tampil sebagai 3 visual card: Accounting, Vape, Alat.
+- Footer dibuat light/compact seperti referensi.
+- Admin tetap tersedia dan semua fungsi D1/R2/login tetap dipertahankan.
+- Price Mode V4.4 tetap ada.
 
 Update:
-Replace isi folder GitHub `adain-website-v1`, commit, tunggu Cloudflare deploy, lalu Ctrl+F5.
+1. Replace isi folder GitHub `adain-website-v1`.
+2. Commit.
+3. Tunggu Cloudflare deploy.
+4. Ctrl+F5.

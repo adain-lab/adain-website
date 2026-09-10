@@ -140,3 +140,87 @@ footer{background:var(--navy);color:white;padding:38px 0 18px}.footer-grid{displ
   border-color:var(--gold);
   box-shadow:0 0 0 3px rgba(201,144,22,.10);
 }
+
+.admin-form label select + input{margin-top:8px}
+
+
+/* ===== V4.5 HOME REDESIGN ===== */
+.home-v45{padding:46px 0 34px;border-bottom:1px solid var(--line)}
+.home-v45 .hero-grid{grid-template-columns:1.05fr .95fr 210px;gap:34px;max-width:1320px}
+.home-v45 .hero-copy{padding:18px 0}
+.home-v45 .hero-copy h1{font-size:clamp(52px,5.2vw,78px)}
+.home-v45 .hero-copy p{font-size:17px;max-width:590px}
+.home-v45 .hero-art{min-height:365px}
+.home-v45 .hero-card.big{inset:8px 0 8px 0;border-radius:24px;padding:44px}
+.home-v45 .hero-card.big .brand-mark .aip-symbol{width:235px}
+.home-v45 .hero-card.big .brand-mark .brand-name{font-size:30px}
+.home-v45 .hero-quote{right:-36px;bottom:18px;font-size:20px;padding:16px 22px}
+.home-v45 .trust-line{font-size:11px;margin-top:20px;letter-spacing:.2em}
+.hero-benefits{display:flex;flex-direction:column;justify-content:center;gap:25px}
+.hero-benefit{display:flex;align-items:center;gap:13px}
+.hero-benefit>span{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;background:#fff4dd;color:var(--navy)}
+.hero-benefit p{margin:0!important;font-size:15px!important;line-height:1.1!important;color:var(--navy)!important}
+.hero-benefit strong{display:block;font-size:16px;margin-top:2px}
+
+.home-units-v45{padding:38px 0 24px}
+.home-units-v45 .section-head{margin-bottom:22px}
+.home-units-v45 .section-head h2{font-size:clamp(32px,3.2vw,46px);margin:7px 0}
+.home-units-v45 .unit-grid{gap:18px}
+.visual-card{border-radius:22px;overflow:hidden;box-shadow:0 12px 35px rgba(7,26,58,.08)}
+.visual-card .unit-visual{height:185px;padding:18px 20px}
+.visual-card .unit-body{padding:20px 22px 22px}
+.visual-card .unit-body h3{margin:0 0 5px;font-size:26px}
+.visual-card .unit-body p{font-size:14px;line-height:1.55;margin:12px 0 14px;min-height:66px}
+.visual-card .unit-kicker{font-size:11px;letter-spacing:.13em}
+.visual-card .unit-brand{position:relative;z-index:3;display:flex;align-items:flex-end;gap:7px}
+.visual-card .unit-brand .brand-mark .brand-name{display:none}
+.visual-card .unit-brand .brand-mark.compact .aip-symbol{width:88px}
+.visual-card .unit-brand>span{font-weight:800;color:var(--gold);font-size:15px;margin-bottom:3px}
+.visual-card.vape .unit-brand .brand-mark .aip-symbol path:first-child,
+.visual-card.vape .unit-brand .brand-mark .aip-symbol path:last-child{stroke:#fff}
+.visual-card.vape .unit-brand>span{color:var(--gold)}
+.unit-scene{position:absolute;right:30px;bottom:18px;display:flex;align-items:flex-end;gap:8px;opacity:.94}
+.unit-scene svg{filter:drop-shadow(0 10px 12px rgba(7,26,58,.18))}
+.visual-card.accounting .unit-scene{color:#18345d}
+.visual-card.vape .unit-scene{color:#e8edf5}
+.visual-card.alat .unit-scene{color:#2d3948}
+.unit-icon{position:absolute;right:16px;top:16px;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.88);display:grid;place-items:center;color:var(--gold);z-index:4;box-shadow:0 6px 18px rgba(7,26,58,.1)}
+.visual-card.vape .unit-icon{background:#14365f}
+.visual-card .card-cta{border:1px solid var(--gold);border-radius:999px;padding:9px 14px;color:var(--gold);width:max-content}
+
+.footer-v45{background:#fff;color:var(--navy);padding:18px 0;border-top:1px solid var(--line)}
+.footer-v45-row{display:grid;grid-template-columns:auto 1.2fr repeat(3,auto) auto;align-items:center;gap:30px}
+.footer-v45-row .brand-mark.compact .aip-symbol{width:80px}
+.footer-v45-row .brand-mark.compact .brand-name{font-size:10px}
+.footer-v45-row a,.footer-v45-row>span{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+.footer-motto{display:flex;flex-direction:column;font-size:14px;letter-spacing:.08em}
+.footer-motto span{font-size:13px;margin-top:2px}
+.footer-admin-link{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px}
+
+@media(max-width:1100px){
+  .home-v45 .hero-grid{grid-template-columns:1fr 1fr}
+  .hero-benefits{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);padding-top:8px}
+  .hero-benefit{justify-content:center}
+  .footer-v45-row{grid-template-columns:auto 1fr auto auto}
+  .footer-v45-row>span{display:none}
+}
+@media(max-width:900px){
+  .home-v45 .hero-grid{grid-template-columns:1fr}
+  .home-v45 .hero-art{min-height:340px}
+  .home-v45 .hero-quote{right:8px}
+  .hero-benefits{grid-template-columns:1fr 1fr}
+  .footer-v45-row{grid-template-columns:1fr 1fr}
+}
+@media(max-width:560px){
+  .home-v45{padding-top:28px}
+  .home-v45 .hero-copy h1{font-size:47px}
+  .home-v45 .hero-art{min-height:300px}
+  .home-v45 .hero-card.big{padding:28px}
+  .home-v45 .hero-card.big .brand-mark .aip-symbol{width:185px}
+  .home-v45 .hero-card.big .brand-mark .brand-name{font-size:23px}
+  .hero-benefits{grid-template-columns:1fr 1fr;gap:16px 8px}
+  .hero-benefit>span{width:42px;height:42px}
+  .hero-benefit p{font-size:13px!important}.hero-benefit strong{font-size:14px}
+  .visual-card .unit-visual{height:165px}
+  .footer-v45-row{grid-template-columns:1fr;gap:14px}
+}

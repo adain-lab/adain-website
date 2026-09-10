@@ -121,7 +121,7 @@ function Catalog({type, products}) {
               <h3>{p.name}</h3>
               <div className="stock">{p.stock}</div>
               <div className="product-foot">
-                <strong>{p.price}</strong>
+                {p.price?<strong>{p.price}</strong>:<strong>Info Produk</strong>}
                 <a href={waLink(`Halo ada in Project, saya tertarik dengan ${p.name}. Mohon info lebih lanjut.`)} target="_blank" rel="noreferrer">
                   Tanya <ChevronRight size={16}/>
                 </a>
@@ -166,66 +166,72 @@ function Header({page,setPage}) {
 
 function Footer({setPage}) {
   const go = p => { setPage(p); window.scrollTo({top:0,behavior:'smooth'}); };
-  return <footer>
-    <div className="container footer-grid">
-      <div><BrandMark light/><p>Satu brand, berbagai solusi.</p></div>
-      <div className="footer-links">
-        <button onClick={()=>go('home')}>Home</button><button onClick={()=>go('accounting')}>Accounting</button>
-        <button onClick={()=>go('vape')}>Vape</button><button onClick={()=>go('alat')}>Alat</button>
-      </div>
-      <div className="footer-contact">
-        <a href={`mailto:${EMAIL}`}><Mail size={17}/>{EMAIL}</a>
-        <a href={waLink()} target="_blank" rel="noreferrer"><Phone size={17}/>0818 777 802</a>
-      </div>
+  return <footer className="footer-v45">
+    <div className="container footer-v45-row">
+      <button className="bare" onClick={()=>go('home')}><BrandMark compact/></button>
+      <div className="footer-motto"><b>More Than Business</b><span>A Better Tomorrow</span></div>
+      <a href={waLink()} target="_blank" rel="noreferrer"><Phone size={18}/>0818 777 802</a>
+      <a href={`mailto:${EMAIL}`}><Mail size={18}/>{EMAIL}</a>
+      <span><Landmark size={18}/>Indonesia</span>
+      <button className="footer-admin-link" onClick={()=>go('admin')}>Admin</button>
     </div>
-    <div className="container copyright">© 2026 ada in Project. All rights reserved.</div>
   </footer>
 }
 
 function Home({setPage}) {
   const go = p => { setPage(p); window.scrollTo({top:0, behavior:'smooth'}); };
+  const benefits = [
+    [ShieldCheck,'Layanan','Profesional'],
+    [Users,'Tim','Berpengalaman'],
+    [Boxes,'Solusi','Terintegrasi'],
+    [TrendingUp,'Pertumbuhan','Bersama']
+  ];
   return <>
-    <section className="hero">
+    <section className="hero home-v45">
       <div className="hero-glow hero-glow-1"></div><div className="hero-glow hero-glow-2"></div>
       <div className="container hero-grid">
         <div className="hero-copy">
-          <div className="eyebrow">ADA IN PROJECT</div>
+          <div className="eyebrow gold">ADA IN PROJECT</div>
           <h1>Satu Brand,<br/><span>Berbagai Solusi</span></h1>
           <p>ada in Project adalah ekosistem bisnis yang hadir untuk memberikan solusi terbaik di berbagai kebutuhan Anda — dari keuangan, retail hingga kebutuhan kantor.</p>
-          <div className="trust-line">TERPERCAYA • PROFESIONAL • BERKEMBANG BERSAMA</div>
-          <div className="hero-actions"><button className="btn btn-gold" onClick={()=>document.getElementById('units')?.scrollIntoView({behavior:'smooth'})}>Lihat Unit Bisnis <ArrowRight size={18}/></button><a className="btn btn-ghost" href={waLink()} target="_blank" rel="noreferrer">Konsultasi</a></div>
+          <div className="hero-actions">
+            <button className="btn btn-gold" onClick={()=>document.getElementById('units')?.scrollIntoView({behavior:'smooth'})}>Lihat Unit Bisnis <ArrowRight size={18}/></button>
+            <a className="btn btn-ghost" href={waLink()} target="_blank" rel="noreferrer">Konsultasi</a>
+          </div>
+          <div className="trust-line">TERPERCAYA &nbsp;•&nbsp; PROFESIONAL &nbsp;•&nbsp; BERKEMBANG BERSAMA</div>
         </div>
         <div className="hero-art">
           <div className="hero-card big"><BrandMark light/><div className="hero-tag">MORE THAN BUSINESS<br/>A BETTER TOMORROW</div></div>
           <div className="hero-quote">Solusi untuk<br/>langkah lebih baik.</div>
         </div>
+        <aside className="hero-benefits">
+          {benefits.map(([Icon,a,b])=><div className="hero-benefit" key={a}><span><Icon size={25}/></span><p>{a}<strong>{b}</strong></p></div>)}
+        </aside>
       </div>
     </section>
 
-    <section id="units" className="section units-section">
+    <section id="units" className="section units-section home-units-v45">
       <div className="container">
         <div className="section-head center"><div className="eyebrow gold">UNIT BISNIS KAMI</div><h2>Temukan Solusi yang Anda Butuhkan</h2><p>Tiga unit bisnis dengan identitas berbeda, tetap dalam satu keluarga <strong>ada in Project</strong>.</p></div>
         <div className="unit-grid">
-          {units.map(({id,title,kicker,desc,cta,icon:Icon,visualTitle,visualItems})=>(
-            <article className={`unit-card ${id}`} key={id}>
-              <div className="unit-visual"><div className="visual-top"><span>{visualTitle}</span><Icon size={30}/></div><div className="visual-stack">{visualItems.map((x,i)=><span key={x} style={{'--i':i}}>{x}</span>)}</div></div>
-              <div className="unit-body"><div className="unit-label">AIP / ada in Project</div><h3>{title}</h3><div className="unit-kicker">{kicker}</div><p>{desc}</p><button className="card-cta" onClick={()=>go(id)}>{cta}<ChevronRight size={18}/></button></div>
+          {units.map(({id,title,kicker,desc,cta,icon:Icon})=>(
+            <article className={`unit-card ${id} visual-card`} key={id}>
+              <div className="unit-visual">
+                <div className="unit-brand"><BrandMark compact/><span>{title.replace('ada in ','')}</span></div>
+                <div className="unit-scene">
+                  {id==='accounting'&&<><Calculator size={74}/><FileSpreadsheet size={54}/><TrendingUp size={60}/></>}
+                  {id==='vape'&&<><Package size={76}/><ShoppingBag size={58}/><Store size={60}/></>}
+                  {id==='alat'&&<><PenTool size={70}/><Printer size={58}/><BriefcaseBusiness size={62}/></>}
+                </div>
+                <div className="unit-icon"><Icon size={27}/></div>
+              </div>
+              <div className="unit-body">
+                <h3>{title}</h3><div className="unit-kicker">{kicker}</div><p>{desc}</p>
+                <button className="card-cta" onClick={()=>go(id)}>{cta}<ChevronRight size={18}/></button>
+              </div>
             </article>
           ))}
         </div>
-        <div className="benefit-row">
-          <div><ShieldCheck/><span><b>Terpercaya</b><small>Produk & layanan terpilih</small></span></div>
-          <div><Headphones/><span><b>Dukungan</b><small>Responsif dan profesional</small></span></div>
-          <div><Boxes/><span><b>Beragam Solusi</b><small>Satu ekosistem kebutuhan</small></span></div>
-          <div><TrendingUp/><span><b>Berkembang</b><small>Bersama pelanggan</small></span></div>
-        </div>
-      </div>
-    </section>
-
-    <section className="section about-section">
-      <div className="container about-grid">
-        <div><div className="eyebrow gold">TENTANG KAMI</div><h2>Lebih dari Sekadar Bisnis</h2><p>ada in Project menghubungkan layanan profesional, retail, dan kebutuhan operasional dalam satu identitas yang sederhana dan mudah diakses.</p><a className="btn btn-primary" href={waLink('Halo ada in Project, saya ingin mengetahui lebih lanjut tentang layanan yang tersedia.')} target="_blank" rel="noreferrer">Kenali Kami Lebih Dekat</a></div>
-        <blockquote>“Karena setiap kebutuhan, selalu ada solusinya di ada in.”</blockquote>
       </div>
     </section>
   </>
@@ -280,14 +286,31 @@ function AdminPage(){
   const load=()=>fetch('/api/content').then(r=>r.json()).then(x=>setItems(Array.isArray(x)?x:[])).catch(()=>setItems([]));
   React.useEffect(()=>{if(token)load()},[token]);
   const login=async(e)=>{e.preventDefault();setMsg('Memeriksa...');try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});if(r.ok){const d=await r.json();sessionStorage.setItem('aip_admin',d.token);setToken(d.token);setPassword('');setMsg('')}else if(r.status===401){setMsg('Password admin salah.')}else{setMsg('Login gagal. Coba refresh halaman.')}}catch{setMsg('Tidak dapat terhubung ke server.')}};
-  const save=async(e)=>{e.preventDefault();const url=form.id?`/api/content/${form.id}`:'/api/content';const r=await fetch(url,{method:form.id?'PUT':'POST',headers:{'content-type':'application/json','authorization':`Bearer ${token}`},body:JSON.stringify(form)});if(r.ok){setMsg('Data berhasil disimpan.');setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':''});load()}else setMsg('Gagal menyimpan data.')};
+  const save=async(e)=>{e.preventDefault();const url=form.id?`/api/content/${form.id}`:'/api/content';const r=await fetch(url,{method:form.id?'PUT':'POST',headers:{'content-type':'application/json','authorization':`Bearer ${token}`},body:JSON.stringify({...form,price:(form.priceMode==='contact'?'Hubungi Kami':form.priceMode==='quote'?'Minta Penawaran':form.priceMode==='hidden'?'':form.price)})});if(r.ok){setMsg('Data berhasil disimpan.');setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''});load()}else setMsg('Gagal menyimpan data.')};
   const del=async(id)=>{if(!confirm('Hapus data ini?'))return;await fetch(`/api/content/${id}`,{method:'DELETE',headers:{authorization:`Bearer ${token}`}});load()};
   const upload=async(file)=>{if(!file)return;setMsg('Mengupload foto...');const fd=new FormData();fd.append('file',file);const r=await fetch('/api/upload',{method:'POST',headers:{authorization:`Bearer ${token}`},body:fd});const d=await r.json();if(r.ok){setForm(f=>({...f,image_url:d.url}));setMsg('Foto berhasil diupload.')}else setMsg(d.error||'Upload gagal.')};
   const edit=x=>{setTab(x.type);setForm(x);window.scrollTo({top:0,behavior:'smooth'})};
   const logout=()=>{sessionStorage.removeItem('aip_admin');setToken('')};
   if(!token) return <section className="admin-login"><form onSubmit={login} className="login-card"><BrandMark/><h1>Admin Panel</h1><p>Masuk untuk mengelola produk, experience dan testimoni.</p><input type="password" placeholder="Password admin" value={password} onChange={e=>setPassword(e.target.value)} required/><button className="btn btn-primary"><LogIn size={18}/> Masuk</button>{msg&&<small>{msg}</small>}</form></section>;
   const visible=items.filter(x=>x.type===tab);
-  return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button className={tab==='product'?'active':''} onClick={()=>{setTab('product');setForm({...blank,type:'product',unit:'vape',category:'Liquid',stock:'Tersedia'})}}><Package/>Produk</button><button className={tab==='experience'?'active':''} onClick={()=>{setTab('experience');setForm({...blank,type:'experience',unit:'accounting'})}}><BriefcaseBusiness/>Experience</button><button className={tab==='testimonial'?'active':''} onClick={()=>{setTab('testimonial');setForm({...blank,type:'testimonial',unit:'accounting'})}}><Star/>Testimoni</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>{tab==='product'?'Produk':tab==='experience'?'Experience':'Testimoni'}</h1></div><div className="admin-count">{visible.length} data</div></div><div className="admin-grid"><form className="admin-form" onSubmit={save}><h2>{form.id?'Edit':'Tambah'} {tab}</h2><label>Unit<select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value,category:tab==='product'?(e.target.value==='vape'?'Liquid':'ATK'):form.category})}>{tab==='product'?<><option value="vape">ada in Vape</option><option value="alat">ada in Alat</option></>:<option value="accounting">ada in Accounting</option>}</select></label><label>Nama / Judul<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/></label><div className="form-row"><label>Kategori{tab==='product'?<select value={form.category || (form.unit==='vape'?'Liquid':'ATK')} onChange={e=>setForm({...form,category:e.target.value})}>{(form.unit==='vape'?['Liquid','Device','Cartridge','Accessories','Bundle']:['ATK','Kertas','Filing','Printing','Pantry','Cleaning','General Supplies']).map(x=><option key={x} value={x}>{x}</option>)}</select>:<input value={form.category} onChange={e=>setForm({...form,category:e.target.value})}/>}</label>{tab==='product'&&<label>Stok<select value={form.stock || 'Tersedia'} onChange={e=>setForm({...form,stock:e.target.value})}>{['Tersedia','Stok Terbatas','Pre-order','By Request','Habis'].map(x=><option key={x} value={x}>{x}</option>)}</select></label>}</div>{tab==='product'&&<label>Harga / Teks Harga<input value={form.price} onChange={e=>setForm({...form,price:e.target.value})} placeholder="Rp 120.000 / Hubungi Kami"/></label>}<label>Deskripsi<textarea rows="4" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>{tab==='product'&&<div className="upload-box"><Upload/><div><b>Upload Foto Produk</b><small>JPG/PNG/WebP, maksimal 5 MB</small></div><input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{form.image_url&&<img src={form.image_url}/>}</div>}<div className="form-actions"><button className="btn btn-primary"><Save size={17}/>Simpan</button>{form.id&&<button type="button" className="btn btn-ghost" onClick={()=>setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':''})}>Batal Edit</button>}</div>{msg&&<div className="admin-msg">{msg}</div>}</form><div className="admin-list"><h2>Data Tersimpan</h2>{visible.length===0&&<div className="empty-state">Belum ada data. Tambahkan dari form di samping.</div>}{visible.map(x=><article className="admin-item" key={x.id}>{x.image_url&&<img src={x.image_url}/>}<div><span>{x.unit} • {x.category||x.type}</span><h3>{x.title}</h3><p>{x.price||x.description||'—'} {x.stock?` • ${x.stock}`:''}</p></div><div className="item-actions"><button onClick={()=>edit(x)}><Pencil/></button><button onClick={()=>del(x.id)}><Trash2/></button></div></article>)}</div></div></div></section>
+  return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button className={tab==='product'?'active':''} onClick={()=>{setTab('product');setForm({...blank,type:'product',unit:'vape',category:'Liquid',stock:'Tersedia',priceMode:'show'})}}><Package/>Produk</button><button className={tab==='experience'?'active':''} onClick={()=>{setTab('experience');setForm({...blank,type:'experience',unit:'accounting'})}}><BriefcaseBusiness/>Experience</button><button className={tab==='testimonial'?'active':''} onClick={()=>{setTab('testimonial');setForm({...blank,type:'testimonial',unit:'accounting'})}}><Star/>Testimoni</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>{tab==='product'?'Produk':tab==='experience'?'Experience':'Testimoni'}</h1></div><div className="admin-count">{visible.length} data</div></div><div className="admin-grid"><form className="admin-form" onSubmit={save}><h2>{form.id?'Edit':'Tambah'} {tab}</h2><label>Unit<select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value,category:tab==='product'?(e.target.value==='vape'?'Liquid':'ATK'):form.category})}>{tab==='product'?<><option value="vape">ada in Vape</option><option value="alat">ada in Alat</option></>:<option value="accounting">ada in Accounting</option>}</select></label><label>Nama / Judul<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/></label><div className="form-row"><label>Kategori{tab==='product'?<select value={form.category || (form.unit==='vape'?'Liquid':'ATK')} onChange={e=>setForm({...form,category:e.target.value})}>{(form.unit==='vape'?['Liquid','Device','Cartridge','Accessories','Bundle']:['ATK','Kertas','Filing','Printing','Pantry','Cleaning','General Supplies']).map(x=><option key={x} value={x}>{x}</option>)}</select>:<input value={form.category} onChange={e=>setForm({...form,category:e.target.value})}/>}</label>{tab==='product'&&<label>Stok<select value={form.stock || 'Tersedia'} onChange={e=>setForm({...form,stock:e.target.value})}>{['Tersedia','Stok Terbatas','Pre-order','By Request','Habis'].map(x=><option key={x} value={x}>{x}</option>)}</select></label>}</div>{tab==='product'&&<>
+  <label>Tampilan Harga
+    <select value={form.priceMode || 'show'} onChange={e=>{
+      const mode=e.target.value;
+      setForm({...form,priceMode:mode,price:mode==='contact'?'Hubungi Kami':mode==='quote'?'Minta Penawaran':mode==='hidden'?'':form.price});
+    }}>
+      <option value="show">Tampilkan Harga</option>
+      <option value="contact">Hubungi Kami</option>
+      <option value="quote">Minta Penawaran</option>
+      <option value="hidden">Sembunyikan Harga</option>
+    </select>
+  </label>
+  {(form.priceMode || 'show')==='show'&&
+    <label>Harga
+      <input value={form.price} onChange={e=>setForm({...form,price:e.target.value})} placeholder="Contoh: Rp 120.000"/>
+    </label>
+  }
+</>}<label>Deskripsi<textarea rows="4" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>{tab==='product'&&<div className="upload-box"><Upload/><div><b>Upload Foto Produk</b><small>JPG/PNG/WebP, maksimal 5 MB</small></div><input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{form.image_url&&<img src={form.image_url}/>}</div>}<div className="form-actions"><button className="btn btn-primary"><Save size={17}/>Simpan</button>{form.id&&<button type="button" className="btn btn-ghost" onClick={()=>setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''})}>Batal Edit</button>}</div>{msg&&<div className="admin-msg">{msg}</div>}</form><div className="admin-list"><h2>Data Tersimpan</h2>{visible.length===0&&<div className="empty-state">Belum ada data. Tambahkan dari form di samping.</div>}{visible.map(x=><article className="admin-item" key={x.id}>{x.image_url&&<img src={x.image_url}/>}<div><span>{x.unit} • {x.category||x.type}</span><h3>{x.title}</h3><p>{x.price||x.description||'—'} {x.stock?` • ${x.stock}`:''}</p></div><div className="item-actions"><button onClick={()=>edit(x)}><Pencil/></button><button onClick={()=>del(x.id)}><Trash2/></button></div></article>)}</div></div></div></section>
 }
 
 function App() {
