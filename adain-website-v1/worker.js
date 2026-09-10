@@ -13,14 +13,21 @@ async function ensureDB(db){
     description TEXT NOT NULL DEFAULT '',
     image_url TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL DEFAULT 0,
-    active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );`);
-  const cols=await db.prepare(`PRAGMA table_info(content)`).all();
-  if(!(cols.results||[]).some(c=>c.name==='active')){
+
+  // Migration aman untuk database lama:
+  // bila kolom sudah ada, error duplicate column cukup diabaikan.
+  try{
     await db.exec(`ALTER TABLE content ADD COLUMN active INTEGER NOT NULL DEFAULT 1;`);
+  }catch(err){
+    const msg=String(err?.message||err).toLowerCase();
+    if(!msg.includes('duplicate column') && !msg.includes('already exists')){
+      throw err;
+    }
   }
+
   await db.exec(`CREATE TABLE IF NOT EXISTS visits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     visit_day TEXT NOT NULL,
@@ -113,6 +120,18 @@ export default {
 
     // Content endpoints need D1.
     if(!env.DB) return json({error:'D1 binding DB belum tersedia.'},503);
+
+    if(url.pathname==='/api/db-status' && request.method==='GET'){
+      try{
+        await ensureDB(env.DB);
+        const c=await env.DB.prepare(`SELECT COUNT(*) AS n FROM content`).first();
+        const v=await env.DB.prepare(`SELECT COUNT(*) AS n FROM visits`).first();
+        return json({ok:true,contentRows:Number(c?.n||0),visitRows:Number(v?.n||0)});
+      }catch(err){
+        return json({ok:false,error:String(err?.message||err)},500);
+      }
+    }
+
     try{
       await ensureDB(env.DB);
     }catch(err){
