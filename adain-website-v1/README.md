@@ -1,8 +1,16 @@
-# ada in Project V4.6.3 — Product Catalog & Detail
+# ada in Project V4.7 — Experience & Testimoni Detail
 
-Perbaikan:
-1. Foto produk tampil proporsional penuh dan tidak terpotong.
-2. Nama produk dari database sekarang tampil di card.
-3. Klik card atau tombol Detail membuka detail produk.
-4. Harga angka otomatis diformat, contoh 110000 menjadi Rp. 110.000.
-5. Semua fungsi sebelumnya tetap dipertahankan.
+Update:
+- Admin Experience & Testimoni punya field `Nama Client`.
+- `Nama Project / Jasa` terpisah dan jelas.
+- Kategori Accounting menjadi dropdown:
+  - Pembukuan & Laporan Keuangan
+  - Perpajakan
+  - Payroll & BPJS
+  - Finance Administration
+  - Accounting System & Implementation
+- Experience dan Testimoni tampil di halaman Accounting.
+- Card Experience/Testimoni dapat diklik.
+- Klik card membuka detail: kategori, nama project/jasa, nama client, deskripsi/testimoni, dan CTA WhatsApp.
+- Database otomatis menambah kolom `client_name`, tanpa input SQL manual.
+- Semua fitur produk, D1, R2, CRUD, visitor counter, dan price formatting tetap dipertahankan.

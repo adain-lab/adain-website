@@ -283,17 +283,90 @@ function PageHero({eyebrow,title,desc,children,dark=false}) {
   return <section className={`page-hero ${dark?'dark':''}`}><div className="container page-hero-grid"><div><div className="eyebrow gold">{eyebrow}</div><h1>{title}</h1><p>{desc}</p><div className="hero-actions">{children}</div></div><div className="page-badge"><BrandMark light={!dark}/><span>BUSINESS UNIT</span></div></div></section>
 }
 
+const accountingCategories = [
+  'Pembukuan & Laporan Keuangan',
+  'Perpajakan',
+  'Payroll & BPJS',
+  'Finance Administration',
+  'Accounting System & Implementation'
+];
+
+function AccountingDetail({item,type,onClose}){
+  if(!item) return null;
+  return <div className="product-modal-backdrop" onClick={onClose}>
+    <div className="accounting-detail-modal" onClick={e=>e.stopPropagation()}>
+      <button className="product-modal-close" onClick={onClose} aria-label="Tutup"><X size={22}/></button>
+      <div className="accounting-detail-top">
+        <div className="eyebrow gold">{type==='experience'?'EXPERIENCE / PROJECT':'TESTIMONI KLIEN'}</div>
+        <div className="accounting-detail-category">{item.category||'Accounting'}</div>
+        <h2>{item.title}</h2>
+        {item.client_name&&<div className="accounting-client">Client: <strong>{item.client_name}</strong></div>}
+      </div>
+      <div className="accounting-detail-body">
+        <p>{item.description||item.text||'Belum ada deskripsi detail.'}</p>
+        <a className="btn btn-gold" href={waLink(`Halo ada in Accounting, saya ingin konsultasi terkait ${item.title}.`)} target="_blank" rel="noreferrer">
+          Konsultasi <MessageCircle size={17}/>
+        </a>
+      </div>
+    </div>
+  </div>
+}
+
 function AccountingPage() {
   const experiences = useContent('experience','accounting',fallbackExperiences);
   const testimonials = useContent('testimonial','accounting',[]);
+  const [detail,setDetail]=useState(null);
+
+  const expName = e => e.title || e.name || 'Project';
+  const expClient = e => e.client_name || e.client || '';
+  const expCategory = e => e.category || e.tag || e.type || 'Accounting';
+  const expDesc = e => e.description || e.text || '';
+
   return <>
     <PageHero eyebrow="ADA IN ACCOUNTING" title="Akuntansi Lebih Tertib, Bisnis Lebih Fokus" desc="Layanan akuntansi, keuangan, perpajakan, payroll, dan administrasi untuk membantu bisnis bekerja lebih rapi dan terukur.">
       <a className="btn btn-gold" href={waLink('Halo ada in Accounting, saya ingin konsultasi terkait layanan accounting/finance/tax.')} target="_blank" rel="noreferrer">Konsultasi Sekarang</a>
     </PageHero>
-    <section className="section"><div className="container"><div className="section-head"><div className="eyebrow gold">LAYANAN</div><h2>Layanan yang Dapat Disesuaikan</h2></div><div className="service-grid">{services.map(({icon:Icon,title,text})=><article className="service-card" key={title}><Icon/><h3>{title}</h3><p>{text}</p><CheckCircle2 className="check"/></article>)}</div></div></section>
-    <section className="section soft"><div className="container"><div className="section-head"><div className="eyebrow gold">EXPERIENCE</div><h2>Contoh Experience & Project</h2><p>Area ini nantinya bisa Anda tambah sendiri dari admin panel: nama project, jenis pekerjaan, deskripsi, periode dan dokumentasi.</p></div><div className="experience-grid">{experiences.map((e,i)=><article className="experience-card" key={e.title}><div className="experience-no">0{i+1}</div><div className="experience-tag">{e.type}</div><h3>{e.title}</h3><p>{e.text}</p><span>{e.tag}</span></article>)}</div></div></section>
-    {testimonials.length>0 && <section className="section"><div className="container"><div className="section-head"><div className="eyebrow gold">TESTIMONI</div><h2>Apa Kata Klien</h2></div><div className="experience-grid">{testimonials.map(t=><article className="experience-card" key={t.id||t.title}><Star className="star"/><h3>{t.title}</h3><p>{t.description}</p><span>{t.category||'Client'}</span></article>)}</div></div></section>}
+
+    <section className="section"><div className="container">
+      <div className="section-head"><div className="eyebrow gold">LAYANAN</div><h2>Layanan yang Dapat Disesuaikan</h2></div>
+      <div className="service-grid">{services.map(({icon:Icon,title,text})=><article className="service-card" key={title}><Icon/><h3>{title}</h3><p>{text}</p><CheckCircle2 className="check"/></article>)}</div>
+    </div></section>
+
+    <section className="section soft"><div className="container">
+      <div className="section-head">
+        <div className="eyebrow gold">EXPERIENCE</div>
+        <h2>Experience & Project</h2>
+        <p>Beberapa pengalaman pekerjaan dan project yang pernah ditangani oleh ada in Accounting.</p>
+      </div>
+      <div className="experience-grid">
+        {experiences.map((e,i)=><article className="experience-card clickable-experience" key={e.id||expName(e)} onClick={()=>setDetail({item:e,type:'experience'})}>
+          <div className="experience-no">{String(i+1).padStart(2,'0')}</div>
+          <div className="experience-tag">{expCategory(e)}</div>
+          <h3>{expName(e)}</h3>
+          {expClient(e)&&<div className="experience-client">{expClient(e)}</div>}
+          <p>{expDesc(e).slice(0,120)}{expDesc(e).length>120?'…':''}</p>
+          <button className="experience-detail-btn" onClick={(ev)=>{ev.stopPropagation();setDetail({item:e,type:'experience'})}}>Lihat Detail <ChevronRight size={16}/></button>
+        </article>)}
+      </div>
+    </div></section>
+
+    {testimonials.length>0 && <section className="section"><div className="container">
+      <div className="section-head"><div className="eyebrow gold">TESTIMONI</div><h2>Apa Kata Klien</h2></div>
+      <div className="experience-grid">
+        {testimonials.map(t=><article className="experience-card testimonial-card clickable-experience" key={t.id||t.title} onClick={()=>setDetail({item:t,type:'testimonial'})}>
+          <Star className="star"/>
+          <div className="experience-tag">{expCategory(t)}</div>
+          <h3>{t.title}</h3>
+          {expClient(t)&&<div className="experience-client">{expClient(t)}</div>}
+          <p>{expDesc(t).slice(0,140)}{expDesc(t).length>140?'…':''}</p>
+          <button className="experience-detail-btn" onClick={(ev)=>{ev.stopPropagation();setDetail({item:t,type:'testimonial'})}}>Lihat Detail <ChevronRight size={16}/></button>
+        </article>)}
+      </div>
+    </div></section>}
+
     <section className="section"><div className="container cta-band"><div><div className="eyebrow gold">BUTUH DISKUSI?</div><h2>Ceritakan kebutuhan perusahaan Anda.</h2></div><a className="btn btn-gold" href={waLink('Halo ada in Accounting, saya ingin berdiskusi mengenai kebutuhan perusahaan saya.')} target="_blank" rel="noreferrer">WhatsApp Accounting <ArrowRight size={18}/></a></div></section>
+
+    {detail&&<AccountingDetail item={detail.item} type={detail.type} onClose={()=>setDetail(null)}/>}
   </>
 }
 
@@ -323,7 +396,7 @@ function AlatPage() {
 function AdminPage(){
   const [token,setToken]=useState(()=>sessionStorage.getItem('aip_admin')||'');
   const [password,setPassword]=useState(''); const [items,setItems]=useState([]); const [tab,setTab]=useState('product'); const [msg,setMsg]=useState('');
-  const blank={id:null,type:'product',unit:'vape',title:'',category:'Liquid',price:'',stock:'Tersedia',description:'',image_url:'',sort_order:0,active:1};
+  const blank={id:null,type:'product',unit:'vape',title:'',category:'Liquid',price:'',stock:'Tersedia',description:'',image_url:'',sort_order:0,active:1,client_name:''};
   const [form,setForm]=useState(blank);
   const load=()=>fetch('/api/content?all=1',{headers:{authorization:`Bearer ${token}`}}).then(r=>r.json()).then(x=>setItems(Array.isArray(x)?x:[])).catch(()=>setItems([]));
   React.useEffect(()=>{if(token)load()},[token]);
@@ -335,7 +408,18 @@ function AdminPage(){
   const logout=()=>{sessionStorage.removeItem('aip_admin');setToken('')};
   if(!token) return <section className="admin-login"><form onSubmit={login} className="login-card"><BrandMark/><h1>Admin Panel</h1><p>Masuk untuk mengelola produk, experience dan testimoni.</p><input type="password" placeholder="Password admin" value={password} onChange={e=>setPassword(e.target.value)} required/><button className="btn btn-primary"><LogIn size={18}/> Masuk</button>{msg&&<small>{msg}</small>}</form></section>;
   const visible=items.filter(x=>x.type===tab);
-  return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button className={tab==='product'?'active':''} onClick={()=>{setTab('product');setForm({...blank,type:'product',unit:'vape',category:'Liquid',stock:'Tersedia',priceMode:'show'})}}><Package/>Produk</button><button className={tab==='experience'?'active':''} onClick={()=>{setTab('experience');setForm({...blank,type:'experience',unit:'accounting'})}}><BriefcaseBusiness/>Experience</button><button className={tab==='testimonial'?'active':''} onClick={()=>{setTab('testimonial');setForm({...blank,type:'testimonial',unit:'accounting'})}}><Star/>Testimoni</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>{tab==='product'?'Produk':tab==='experience'?'Experience':'Testimoni'}</h1></div><div className="admin-count">{visible.length} data</div></div><div className="admin-grid"><form className="admin-form" onSubmit={save}><h2>{form.id?'Edit':'Tambah'} {tab}</h2><label>Unit<select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value,category:tab==='product'?(e.target.value==='vape'?'Liquid':'ATK'):form.category})}>{tab==='product'?<><option value="vape">ada in Vape</option><option value="alat">ada in Alat</option></>:<option value="accounting">ada in Accounting</option>}</select></label><label>Nama / Judul<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} required/></label><div className="form-row"><label>Kategori{tab==='product'?<select value={form.category || (form.unit==='vape'?'Liquid':'ATK')} onChange={e=>setForm({...form,category:e.target.value})}>{(form.unit==='vape'?['Liquid','Device','Cartridge','Accessories','Bundle']:['ATK','Kertas','Filing','Printing','Pantry','Cleaning','General Supplies']).map(x=><option key={x} value={x}>{x}</option>)}</select>:<input value={form.category} onChange={e=>setForm({...form,category:e.target.value})}/>}</label>{tab==='product'&&<label>Stok<select value={form.stock || 'Tersedia'} onChange={e=>setForm({...form,stock:e.target.value})}>{['Tersedia','Stok Terbatas','Pre-order','By Request','Habis'].map(x=><option key={x} value={x}>{x}</option>)}</select></label>}</div>{tab==='product'&&<>
+  return <section className="admin-shell"><aside className="admin-side"><BrandMark light compact/><div className="admin-menu"><button className={tab==='product'?'active':''} onClick={()=>{setTab('product');setForm({...blank,type:'product',unit:'vape',category:'Liquid',stock:'Tersedia',priceMode:'show'})}}><Package/>Produk</button><button className={tab==='experience'?'active':''} onClick={()=>{setTab('experience');setForm({...blank,type:'experience',unit:'accounting',category:accountingCategories[0],client_name:''})}}><BriefcaseBusiness/>Experience</button><button className={tab==='testimonial'?'active':''} onClick={()=>{setTab('testimonial');setForm({...blank,type:'testimonial',unit:'accounting',category:accountingCategories[0],client_name:''})}}><Star/>Testimoni</button></div><button className="admin-logout" onClick={logout}><LogOut/>Logout</button></aside><div className="admin-main"><div className="admin-title"><div><div className="eyebrow gold">ADMIN PANEL</div><h1>{tab==='product'?'Produk':tab==='experience'?'Experience':'Testimoni'}</h1></div><div className="admin-count">{visible.length} data</div></div><div className="admin-grid"><form className="admin-form" onSubmit={save}><h2>{form.id?'Edit':'Tambah'} {tab}</h2><label>Unit<select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value,category:tab==='product'?(e.target.value==='vape'?'Liquid':'ATK'):form.category})}>{tab==='product'?<><option value="vape">ada in Vape</option><option value="alat">ada in Alat</option></>:<option value="accounting">ada in Accounting</option>}</select></label>
+{tab!=='product'&&<label>Nama Client<input value={form.client_name||''} onChange={e=>setForm({...form,client_name:e.target.value})} placeholder="Contoh: PT Maju Jaya Sejahtera"/></label>}
+<label>{tab==='product'?'Nama / Judul':'Nama Project / Jasa'}<input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder={tab==='product'?'Nama produk':'Contoh: Penyusunan Laporan Keuangan Bulanan'} required/></label>
+<div className="form-row">
+  <label>Kategori
+    {tab==='product'
+      ? <select value={form.category || (form.unit==='vape'?'Liquid':'ATK')} onChange={e=>setForm({...form,category:e.target.value})}>{(form.unit==='vape'?['Liquid','Device','Cartridge','Accessories','Bundle']:['ATK','Kertas','Filing','Printing','Pantry','Cleaning','General Supplies']).map(x=><option key={x} value={x}>{x}</option>)}</select>
+      : <select value={form.category||accountingCategories[0]} onChange={e=>setForm({...form,category:e.target.value})}>{accountingCategories.map(x=><option key={x} value={x}>{x}</option>)}</select>
+    }
+  </label>
+  {tab==='product'&&<label>Stok<select value={form.stock || 'Tersedia'} onChange={e=>setForm({...form,stock:e.target.value})}>{['Tersedia','Stok Terbatas','Pre-order','By Request','Habis'].map(x=><option key={x} value={x}>{x}</option>)}</select></label>}
+</div>{tab==='product'&&<>
   <label>Tampilan Harga
     <select value={form.priceMode || 'show'} onChange={e=>{
       const mode=e.target.value;
@@ -352,7 +436,7 @@ function AdminPage(){
       <input value={form.price} onChange={e=>setForm({...form,price:e.target.value})} placeholder="Contoh: Rp 120.000"/>
     </label>
   }
-</>}{tab==='product'&&<label>Status Produk<select value={String(form.active ?? 1)} onChange={e=>setForm({...form,active:Number(e.target.value)})}><option value="1">Aktif — tampil di website</option><option value="0">Nonaktif — sembunyikan dari website</option></select></label>}<label>Deskripsi<textarea rows="4" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>{tab==='product'&&<div className="upload-box"><Upload/><div><b>Upload Foto Produk</b><small>JPG/PNG/WebP, maksimal 5 MB</small></div><input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{form.image_url&&<img src={form.image_url}/>}</div>}<div className="form-actions"><button className="btn btn-primary"><Save size={17}/>{form.id?'Simpan Perubahan':'Simpan'}</button>{form.id&&<button type="button" className="btn btn-ghost" onClick={()=>setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''})}>Batal Edit</button>}</div>{msg&&<div className="admin-msg">{msg}</div>}</form><div className="admin-list"><h2>Data Tersimpan</h2>{visible.length===0&&<div className="empty-state">Belum ada data. Tambahkan dari form di samping.</div>}{visible.map(x=><article className={`admin-item ${Number(x.active)===0?'inactive':''}`} key={x.id}>{x.image_url&&<img src={x.image_url}/>}<div><span>{x.unit} • {x.category||x.type}</span><h3>{x.title}</h3><p>{x.price||x.description||'—'} {x.stock?` • ${x.stock}`:''}</p>{x.type==='product'&&<small className={`status-pill ${Number(x.active)===0?'off':'on'}`}>{Number(x.active)===0?<><EyeOff size={13}/> Nonaktif</>:<><Eye size={13}/> Aktif</>}</small>}</div><div className="item-actions"><button title="Edit" onClick={()=>edit(x)}><Pencil/></button><button title="Hapus" className="danger" onClick={()=>del(x)}><Trash2/></button></div></article>)}</div></div></div></section>
+</>}{tab==='product'&&<label>Status Produk<select value={String(form.active ?? 1)} onChange={e=>setForm({...form,active:Number(e.target.value)})}><option value="1">Aktif — tampil di website</option><option value="0">Nonaktif — sembunyikan dari website</option></select></label>}<label>{tab==='testimonial'?'Isi Testimoni':'Deskripsi Detail'}<textarea rows="5" value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder={tab==='testimonial'?'Tuliskan testimoni dari client...':'Jelaskan scope pekerjaan, hasil, dan detail project/jasa...'}/></label>{tab==='product'&&<div className="upload-box"><Upload/><div><b>Upload Foto Produk</b><small>JPG/PNG/WebP, maksimal 5 MB</small></div><input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{form.image_url&&<img src={form.image_url}/>}</div>}<div className="form-actions"><button className="btn btn-primary"><Save size={17}/>{form.id?'Simpan Perubahan':'Simpan'}</button>{form.id&&<button type="button" className="btn btn-ghost" onClick={()=>setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''})}>Batal Edit</button>}</div>{msg&&<div className="admin-msg">{msg}</div>}</form><div className="admin-list"><h2>Data Tersimpan</h2>{visible.length===0&&<div className="empty-state">Belum ada data. Tambahkan dari form di samping.</div>}{visible.map(x=><article className={`admin-item ${Number(x.active)===0?'inactive':''}`} key={x.id}>{x.image_url&&<img src={x.image_url}/>}<div><span>{x.unit} • {x.category||x.type}</span><h3>{x.title}</h3>{x.type!=='product'&&x.client_name&&<div className="admin-client-name">Client: {x.client_name}</div>}<p>{x.type==='product'?(x.price||x.description||'—'):(x.description||'—')} {x.type==='product'&&x.stock?` • ${x.stock}`:''}</p>{x.type==='product'&&<small className={`status-pill ${Number(x.active)===0?'off':'on'}`}>{Number(x.active)===0?<><EyeOff size={13}/> Nonaktif</>:<><Eye size={13}/> Aktif</>}</small>}</div><div className="item-actions"><button title="Edit" onClick={()=>edit(x)}><Pencil/></button><button title="Hapus" className="danger" onClick={()=>del(x)}><Trash2/></button></div></article>)}</div></div></div></section>
 }
 
 function App() {

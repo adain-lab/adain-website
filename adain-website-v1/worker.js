@@ -28,6 +28,15 @@ async function ensureDB(db){
     }
   }
 
+  try{
+    await db.prepare(`ALTER TABLE content ADD COLUMN client_name TEXT NOT NULL DEFAULT ''`).run();
+  }catch(err){
+    const msg=String(err?.message||err).toLowerCase();
+    if(!msg.includes('duplicate column') && !msg.includes('already exists')){
+      throw err;
+    }
+  }
+
   await db.prepare(`CREATE TABLE IF NOT EXISTS visits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     visit_day TEXT NOT NULL,
@@ -171,15 +180,15 @@ export default {
     if(url.pathname==='/api/content' && request.method==='POST'){
       if(!await verifyAdminToken(request,env)) return unauthorized();
       const b=await request.json(); if(!allowedTypes.has(b.type)||!b.title) return json({error:'Data tidak lengkap'},400);
-      const r=await env.DB.prepare(`INSERT INTO content(type,unit,title,category,price,stock,description,image_url,sort_order,active) VALUES(?,?,?,?,?,?,?,?,?,?)`)
-        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,b.active===0?0:1).run();
+      const r=await env.DB.prepare(`INSERT INTO content(type,unit,title,category,price,stock,description,image_url,sort_order,active,client_name) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,b.active===0?0:1,b.client_name||'').run();
       return json({ok:true,id:r.meta?.last_row_id});
     }
     const m=url.pathname.match(/^\/api\/content\/(\d+)$/);
     if(m && request.method==='PUT'){
       if(!await verifyAdminToken(request,env)) return unauthorized(); const b=await request.json();
-      await env.DB.prepare(`UPDATE content SET type=?,unit=?,title=?,category=?,price=?,stock=?,description=?,image_url=?,sort_order=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,b.active===0?0:1,Number(m[1])).run();
+      await env.DB.prepare(`UPDATE content SET type=?,unit=?,title=?,category=?,price=?,stock=?,description=?,image_url=?,sort_order=?,active=?,client_name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,b.active===0?0:1,b.client_name||'',Number(m[1])).run();
       return json({ok:true});
     }
     if(m && request.method==='DELETE'){
