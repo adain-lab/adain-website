@@ -51,3 +51,9 @@ Di `src/main.jsx`:
 ## Catatan
 
 Logo di project masih dibuat sebagai SVG sederhana agar ringan dan langsung bisa jalan. Nanti dapat diganti dengan file logo final PNG/SVG tanpa mengubah struktur website.
+
+
+## Update
+- Business Unit cards diperkuat dengan visual kategori.
+- CTA tiap unit dipertegas.
+- Contact copy dirapikan.

@@ -31,6 +31,8 @@ const units = [
     desc: 'Solusi profesional untuk pembukuan, laporan keuangan, perpajakan, payroll, dan pendampingan administrasi bisnis.',
     cta: 'Lihat Layanan',
     icon: Calculator,
+    visualTitle: 'FINANCE',
+    visualItems: ['Laporan Keuangan', 'Pajak', 'Payroll'],
     href: '#accounting'
   },
   {
@@ -40,6 +42,8 @@ const units = [
     desc: 'Retail online untuk liquid, device, cartridge, dan aksesoris vape dari berbagai brand pilihan.',
     cta: 'Belanja Sekarang',
     icon: Store,
+    visualTitle: 'VAPE STORE',
+    visualItems: ['Liquid', 'Device', 'Cartridge'],
     href: TOKOPEDIA_URL
   },
   {
@@ -49,6 +53,8 @@ const units = [
     desc: 'Kebutuhan kantor dan operasional bisnis: ATK, kertas, filing, pantry, kebersihan, serta general supplies.',
     cta: 'Lihat Produk',
     icon: BriefcaseBusiness,
+    visualTitle: 'OFFICE SUPPLY',
+    visualItems: ['ATK', 'Kertas & Filing', 'General Supplies'],
     href: '#alat'
   }
 ];
@@ -125,18 +131,28 @@ function App() {
               <p>Tiga unit bisnis dengan identitas berbeda, tetap dalam satu keluarga <strong>ada in Project</strong>.</p>
             </div>
             <div className="unit-grid">
-              {units.map(({id,title,kicker,desc,cta,icon:Icon,href}) => (
+              {units.map(({id,title,kicker,desc,cta,icon:Icon,visualTitle,visualItems,href}) => (
                 <article className={`unit-card ${id}`} key={id}>
-                  <div className="unit-icon"><Icon size={34}/></div>
-                  <div className="unit-label">AIP / ada in Project</div>
-                  <h3>{title}</h3>
-                  <div className="unit-kicker">{kicker}</div>
-                  <p>{desc}</p>
-                  {href.startsWith('#') ? (
-                    <button className="card-cta" onClick={()=>go(href)}>{cta}<ChevronRight size={18}/></button>
-                  ) : (
-                    <a className="card-cta" href={href}>{cta}<ChevronRight size={18}/></a>
-                  )}
+                  <div className="unit-visual">
+                    <div className="visual-top">
+                      <span>{visualTitle}</span>
+                      <Icon size={30}/>
+                    </div>
+                    <div className="visual-stack">
+                      {visualItems.map((item, i)=><span key={item} style={{'--i':i}}>{item}</span>)}
+                    </div>
+                  </div>
+                  <div className="unit-body">
+                    <div className="unit-label">AIP / ada in Project</div>
+                    <h3>{title}</h3>
+                    <div className="unit-kicker">{kicker}</div>
+                    <p>{desc}</p>
+                    {href.startsWith('#') ? (
+                      <button className="card-cta" onClick={()=>go(href)}>{cta}<ChevronRight size={18}/></button>
+                    ) : (
+                      <a className="card-cta" href={href}>{cta}<ChevronRight size={18}/></a>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>
