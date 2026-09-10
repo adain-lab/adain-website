@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import {
   Menu, X, ChevronRight, Calculator, Store, BriefcaseBusiness,
   ShieldCheck, Headphones, Boxes, TrendingUp, MessageCircle,
-  Instagram, Linkedin, Mail, Phone, MapPin, ArrowRight
+  Mail, Phone, MapPin, ArrowRight
 } from 'lucide-react';
 import './styles.css';
 
@@ -242,7 +242,7 @@ function App() {
             <button onClick={()=>go('#about')}>About Us</button>
             <button onClick={()=>go('#contact')}>Contact</button>
           </div>
-          <div className="socials"><Instagram/><Linkedin/></div>
+          <div className="socials"><span className="social-text">IG</span><span className="social-text">in</span></div>
         </div>
         <div className="container copyright">© 2026 ada in. All rights reserved.</div>
       </footer>
