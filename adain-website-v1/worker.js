@@ -13,8 +13,20 @@ async function ensureDB(db){
     description TEXT NOT NULL DEFAULT '',
     image_url TEXT NOT NULL DEFAULT '',
     sort_order INTEGER NOT NULL DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );`);
+  const cols=await db.prepare(`PRAGMA table_info(content)`).all();
+  if(!(cols.results||[]).some(c=>c.name==='active')){
+    await db.exec(`ALTER TABLE content ADD COLUMN active INTEGER NOT NULL DEFAULT 1;`);
+  }
+  await db.exec(`CREATE TABLE IF NOT EXISTS visits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    visit_day TEXT NOT NULL,
+    visitor_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(visit_day, visitor_hash)
   );`);
 }
 
@@ -57,6 +69,11 @@ async function verifyAdminToken(request, env){
 
   const expected=await signAdminToken(secret,ts);
   return token===expected;
+}
+
+async function sha256Hex(value){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
 export default {
@@ -104,27 +121,57 @@ export default {
     if(url.pathname==='/api/content' && request.method==='GET'){
       const type=url.searchParams.get('type');
       const unit=url.searchParams.get('unit');
+      const wantsAll=url.searchParams.get('all')==='1';
+      const isAdmin=wantsAll ? await verifyAdminToken(request,env) : false;
       let sql='SELECT * FROM content WHERE 1=1'; const binds=[];
-      if(type){sql+=' AND type=?';binds.push(type)} if(unit){sql+=' AND unit=?';binds.push(unit)}
+      if(!isAdmin) sql+=' AND active=1';
+      if(type){sql+=' AND type=?';binds.push(type)}
+      if(unit){sql+=' AND unit=?';binds.push(unit)}
       sql+=' ORDER BY sort_order ASC, id DESC';
       const {results}=await env.DB.prepare(sql).bind(...binds).all(); return json(results||[]);
+    }
+
+    if(url.pathname==='/api/visit' && request.method==='POST'){
+      const body=await request.json().catch(()=>({}));
+      const visitorId=String(body.visitorId||'').slice(0,200);
+      if(!visitorId) return json({error:'visitorId required'},400);
+      const day=new Date().toISOString().slice(0,10);
+      const hash=await sha256Hex(`${day}:${visitorId}`);
+      await env.DB.prepare(`INSERT OR IGNORE INTO visits(visit_day,visitor_hash) VALUES(?,?)`).bind(day,hash).run();
+      const today=await env.DB.prepare(`SELECT COUNT(*) AS n FROM visits WHERE visit_day=?`).bind(day).first();
+      const total=await env.DB.prepare(`SELECT COUNT(*) AS n FROM visits`).first();
+      return json({ok:true,today:Number(today?.n||0),total:Number(total?.n||0)});
+    }
+
+    if(url.pathname==='/api/visit-stats' && request.method==='GET'){
+      const day=new Date().toISOString().slice(0,10);
+      const today=await env.DB.prepare(`SELECT COUNT(*) AS n FROM visits WHERE visit_day=?`).bind(day).first();
+      const total=await env.DB.prepare(`SELECT COUNT(*) AS n FROM visits`).first();
+      return json({today:Number(today?.n||0),total:Number(total?.n||0)});
     }
     if(url.pathname==='/api/content' && request.method==='POST'){
       if(!await verifyAdminToken(request,env)) return unauthorized();
       const b=await request.json(); if(!allowedTypes.has(b.type)||!b.title) return json({error:'Data tidak lengkap'},400);
-      const r=await env.DB.prepare(`INSERT INTO content(type,unit,title,category,price,stock,description,image_url,sort_order) VALUES(?,?,?,?,?,?,?,?,?)`)
-        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0).run();
+      const r=await env.DB.prepare(`INSERT INTO content(type,unit,title,category,price,stock,description,image_url,sort_order,active) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,b.active===0?0:1).run();
       return json({ok:true,id:r.meta?.last_row_id});
     }
     const m=url.pathname.match(/^\/api\/content\/(\d+)$/);
     if(m && request.method==='PUT'){
       if(!await verifyAdminToken(request,env)) return unauthorized(); const b=await request.json();
-      await env.DB.prepare(`UPDATE content SET type=?,unit=?,title=?,category=?,price=?,stock=?,description=?,image_url=?,sort_order=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,Number(m[1])).run();
+      await env.DB.prepare(`UPDATE content SET type=?,unit=?,title=?,category=?,price=?,stock=?,description=?,image_url=?,sort_order=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,b.active===0?0:1,Number(m[1])).run();
       return json({ok:true});
     }
     if(m && request.method==='DELETE'){
-      if(!await verifyAdminToken(request,env)) return unauthorized(); await env.DB.prepare('DELETE FROM content WHERE id=?').bind(Number(m[1])).run(); return json({ok:true});
+      if(!await verifyAdminToken(request,env)) return unauthorized();
+      const old=await env.DB.prepare('SELECT image_url FROM content WHERE id=?').bind(Number(m[1])).first();
+      await env.DB.prepare('DELETE FROM content WHERE id=?').bind(Number(m[1])).run();
+      if(old?.image_url?.startsWith('/media/') && env.MEDIA){
+        const key=old.image_url.slice('/media/'.length);
+        await env.MEDIA.delete(key).catch(()=>{});
+      }
+      return json({ok:true});
     }
     if(url.pathname==='/api/upload' && request.method==='POST'){
       if(!await verifyAdminToken(request,env)) return unauthorized();

@@ -5,7 +5,7 @@ import {
   ShieldCheck, Headphones, Boxes, TrendingUp, MessageCircle,
   Mail, Phone, ArrowRight, CheckCircle2, Search, Filter, Star,
   FileSpreadsheet, ReceiptText, Landmark, Users, Package, ShoppingBag,
-  Printer, PenTool, Coffee, SprayCan, ExternalLink, LogIn, LogOut, Plus, Pencil, Trash2, Upload, Save, LayoutDashboard
+  Printer, PenTool, Coffee, SprayCan, ExternalLink, LogIn, LogOut, Eye, EyeOff, Plus, Pencil, Trash2, Upload, Save, LayoutDashboard
 } from 'lucide-react';
 import './styles.css';
 
@@ -180,6 +180,13 @@ function Footer({setPage}) {
 
 function Home({setPage}) {
   const go = p => { setPage(p); window.scrollTo({top:0, behavior:'smooth'}); };
+  const [visitors,setVisitors]=useState({today:0,total:0});
+  React.useEffect(()=>{
+    let id=localStorage.getItem('aip_visitor_id');
+    if(!id){id=crypto.randomUUID();localStorage.setItem('aip_visitor_id',id)}
+    fetch('/api/visit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({visitorId:id})})
+      .then(r=>r.ok?r.json():null).then(d=>{if(d)setVisitors({today:d.today||0,total:d.total||0})}).catch(()=>{});
+  },[]);
   const benefits = [
     [ShieldCheck,'Layanan','Profesional'],
     [Users,'Tim','Berpengalaman'],
@@ -198,7 +205,7 @@ function Home({setPage}) {
             <button className="btn btn-gold" onClick={()=>document.getElementById('units')?.scrollIntoView({behavior:'smooth'})}>Lihat Unit Bisnis <ArrowRight size={18}/></button>
             <a className="btn btn-ghost" href={waLink()} target="_blank" rel="noreferrer">Konsultasi</a>
           </div>
-          <div className="trust-line">TERPERCAYA &nbsp;•&nbsp; PROFESIONAL &nbsp;•&nbsp; BERKEMBANG BERSAMA</div>
+          <div className="trust-line">TERPERCAYA &nbsp;•&nbsp; PROFESIONAL &nbsp;•&nbsp; BERKEMBANG BERSAMA</div><div className="visitor-counter"><span><b>{visitors.today.toLocaleString('id-ID')}</b><small>Pengunjung Hari Ini</small></span><i></i><span><b>{visitors.total.toLocaleString('id-ID')}</b><small>Total Kunjungan Unik Harian</small></span></div>
         </div>
         <div className="hero-art">
           <div className="hero-card big"><BrandMark light/><div className="hero-tag">MORE THAN BUSINESS<br/>A BETTER TOMORROW</div></div>
@@ -281,15 +288,15 @@ function AlatPage() {
 function AdminPage(){
   const [token,setToken]=useState(()=>sessionStorage.getItem('aip_admin')||'');
   const [password,setPassword]=useState(''); const [items,setItems]=useState([]); const [tab,setTab]=useState('product'); const [msg,setMsg]=useState('');
-  const blank={id:null,type:'product',unit:'vape',title:'',category:'',price:'',stock:'Tersedia',description:'',image_url:'',sort_order:0};
+  const blank={id:null,type:'product',unit:'vape',title:'',category:'Liquid',price:'',stock:'Tersedia',description:'',image_url:'',sort_order:0,active:1};
   const [form,setForm]=useState(blank);
-  const load=()=>fetch('/api/content').then(r=>r.json()).then(x=>setItems(Array.isArray(x)?x:[])).catch(()=>setItems([]));
+  const load=()=>fetch('/api/content?all=1',{headers:{authorization:`Bearer ${token}`}}).then(r=>r.json()).then(x=>setItems(Array.isArray(x)?x:[])).catch(()=>setItems([]));
   React.useEffect(()=>{if(token)load()},[token]);
   const login=async(e)=>{e.preventDefault();setMsg('Memeriksa...');try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});if(r.ok){const d=await r.json();sessionStorage.setItem('aip_admin',d.token);setToken(d.token);setPassword('');setMsg('')}else if(r.status===401){setMsg('Password admin salah.')}else{setMsg('Login gagal. Coba refresh halaman.')}}catch{setMsg('Tidak dapat terhubung ke server.')}};
   const save=async(e)=>{e.preventDefault();const url=form.id?`/api/content/${form.id}`:'/api/content';const r=await fetch(url,{method:form.id?'PUT':'POST',headers:{'content-type':'application/json','authorization':`Bearer ${token}`},body:JSON.stringify({...form,price:(form.priceMode==='contact'?'Hubungi Kami':form.priceMode==='quote'?'Minta Penawaran':form.priceMode==='hidden'?'':form.price)})});if(r.ok){setMsg('Data berhasil disimpan.');setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''});load()}else setMsg('Gagal menyimpan data.')};
-  const del=async(id)=>{if(!confirm('Hapus data ini?'))return;await fetch(`/api/content/${id}`,{method:'DELETE',headers:{authorization:`Bearer ${token}`}});load()};
+  const del=async(x)=>{if(!confirm(`Yakin ingin menghapus "${x.title}"? Data dan foto produk akan dihapus.`))return;const r=await fetch(`/api/content/${x.id}`,{method:'DELETE',headers:{authorization:`Bearer ${token}`}});if(r.ok){setMsg('Data berhasil dihapus.');if(form.id===x.id)setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',active:1});load()}else setMsg('Gagal menghapus data.');};
   const upload=async(file)=>{if(!file)return;setMsg('Mengupload foto...');const fd=new FormData();fd.append('file',file);const r=await fetch('/api/upload',{method:'POST',headers:{authorization:`Bearer ${token}`},body:fd});const d=await r.json();if(r.ok){setForm(f=>({...f,image_url:d.url}));setMsg('Foto berhasil diupload.')}else setMsg(d.error||'Upload gagal.')};
-  const edit=x=>{setTab(x.type);setForm(x);window.scrollTo({top:0,behavior:'smooth'})};
+  const edit=x=>{setTab(x.type);setForm({...x,active:Number(x.active)!==0?1:0,priceMode:x.price==='Hubungi Kami'?'contact':x.price==='Minta Penawaran'?'quote':!x.price?'hidden':'show'});window.scrollTo({top:0,behavior:'smooth'})};
   const logout=()=>{sessionStorage.removeItem('aip_admin');setToken('')};
   if(!token) return <section className="admin-login"><form onSubmit={login} className="login-card"><BrandMark/><h1>Admin Panel</h1><p>Masuk untuk mengelola produk, experience dan testimoni.</p><input type="password" placeholder="Password admin" value={password} onChange={e=>setPassword(e.target.value)} required/><button className="btn btn-primary"><LogIn size={18}/> Masuk</button>{msg&&<small>{msg}</small>}</form></section>;
   const visible=items.filter(x=>x.type===tab);
@@ -310,7 +317,7 @@ function AdminPage(){
       <input value={form.price} onChange={e=>setForm({...form,price:e.target.value})} placeholder="Contoh: Rp 120.000"/>
     </label>
   }
-</>}<label>Deskripsi<textarea rows="4" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>{tab==='product'&&<div className="upload-box"><Upload/><div><b>Upload Foto Produk</b><small>JPG/PNG/WebP, maksimal 5 MB</small></div><input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{form.image_url&&<img src={form.image_url}/>}</div>}<div className="form-actions"><button className="btn btn-primary"><Save size={17}/>Simpan</button>{form.id&&<button type="button" className="btn btn-ghost" onClick={()=>setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''})}>Batal Edit</button>}</div>{msg&&<div className="admin-msg">{msg}</div>}</form><div className="admin-list"><h2>Data Tersimpan</h2>{visible.length===0&&<div className="empty-state">Belum ada data. Tambahkan dari form di samping.</div>}{visible.map(x=><article className="admin-item" key={x.id}>{x.image_url&&<img src={x.image_url}/>}<div><span>{x.unit} • {x.category||x.type}</span><h3>{x.title}</h3><p>{x.price||x.description||'—'} {x.stock?` • ${x.stock}`:''}</p></div><div className="item-actions"><button onClick={()=>edit(x)}><Pencil/></button><button onClick={()=>del(x.id)}><Trash2/></button></div></article>)}</div></div></div></section>
+</>}{tab==='product'&&<label>Status Produk<select value={String(form.active ?? 1)} onChange={e=>setForm({...form,active:Number(e.target.value)})}><option value="1">Aktif — tampil di website</option><option value="0">Nonaktif — sembunyikan dari website</option></select></label>}<label>Deskripsi<textarea rows="4" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label>{tab==='product'&&<div className="upload-box"><Upload/><div><b>Upload Foto Produk</b><small>JPG/PNG/WebP, maksimal 5 MB</small></div><input type="file" accept="image/*" onChange={e=>upload(e.target.files?.[0])}/>{form.image_url&&<img src={form.image_url}/>}</div>}<div className="form-actions"><button className="btn btn-primary"><Save size={17}/>{form.id?'Simpan Perubahan':'Simpan'}</button>{form.id&&<button type="button" className="btn btn-ghost" onClick={()=>setForm({...blank,type:tab,unit:tab==='product'?'vape':'accounting',category:tab==='product'?'Liquid':'',stock:tab==='product'?'Tersedia':'',priceMode:tab==='product'?'show':''})}>Batal Edit</button>}</div>{msg&&<div className="admin-msg">{msg}</div>}</form><div className="admin-list"><h2>Data Tersimpan</h2>{visible.length===0&&<div className="empty-state">Belum ada data. Tambahkan dari form di samping.</div>}{visible.map(x=><article className={`admin-item ${Number(x.active)===0?'inactive':''}`} key={x.id}>{x.image_url&&<img src={x.image_url}/>}<div><span>{x.unit} • {x.category||x.type}</span><h3>{x.title}</h3><p>{x.price||x.description||'—'} {x.stock?` • ${x.stock}`:''}</p>{x.type==='product'&&<small className={`status-pill ${Number(x.active)===0?'off':'on'}`}>{Number(x.active)===0?<><EyeOff size={13}/> Nonaktif</>:<><Eye size={13}/> Aktif</>}</small>}</div><div className="item-actions"><button title="Edit" onClick={()=>edit(x)}><Pencil/></button><button title="Hapus" className="danger" onClick={()=>del(x)}><Trash2/></button></div></article>)}</div></div></div></section>
 }
 
 function App() {

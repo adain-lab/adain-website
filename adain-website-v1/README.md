@@ -1,15 +1,20 @@
-# ada in Project V4.5 — Home Redesign
-
-V4.5 mempertahankan seluruh fungsi V4.4 dan merombak tampilan Home agar lebih dekat dengan referensi:
-- Hero lebih compact dan premium.
-- Benefit/keunggulan berada di sisi kanan hero pada desktop.
-- Unit bisnis tampil sebagai 3 visual card: Accounting, Vape, Alat.
-- Footer dibuat light/compact seperti referensi.
-- Admin tetap tersedia dan semua fungsi D1/R2/login tetap dipertahankan.
-- Price Mode V4.4 tetap ada.
+# ada in Project V4.6 — CRUD + Visitor Counter
 
 Update:
+- Produk di Admin dapat Edit.
+- Produk dapat Hapus dengan konfirmasi nama produk.
+- Saat produk dihapus, foto R2 terkait juga ikut dibersihkan.
+- Status Produk: Aktif / Nonaktif.
+- Produk Nonaktif tetap ada di Admin tetapi tidak tampil di website publik.
+- Tombol Simpan berubah menjadi “Simpan Perubahan” saat edit.
+- Homepage menampilkan:
+  - Pengunjung Hari Ini
+  - Total Kunjungan Unik Harian
+- Counter memakai ID anonim di browser dan hash per hari; tidak menyimpan nama/email/IP pengguna.
+
+Cara update:
 1. Replace isi folder GitHub `adain-website-v1`.
 2. Commit.
-3. Tunggu Cloudflare deploy.
+3. Tunggu Cloudflare deploy otomatis.
 4. Ctrl+F5.
+5. Tidak perlu membuat tabel D1 manual; Worker melakukan migrasi otomatis saat API dipanggil.
