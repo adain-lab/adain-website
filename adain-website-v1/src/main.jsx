@@ -5,14 +5,42 @@ import {
   ShieldCheck, Headphones, Boxes, TrendingUp, MessageCircle,
   Mail, Phone, ArrowRight, CheckCircle2, Search, Filter, Star,
   FileSpreadsheet, ReceiptText, Landmark, Users, Package, ShoppingBag,
-  Printer, PenTool, Coffee, SprayCan, ExternalLink, LogIn, LogOut, Eye, EyeOff, Plus, Pencil, Trash2, Upload, Save, LayoutDashboard
+  Printer, PenTool, Coffee, SprayCan, ExternalLink, ShoppingCart, Plus, Minus, FileDown, Send, Trash, ClipboardList, LogIn, LogOut, Eye, EyeOff, Plus, Pencil, Trash2, Upload, Save, LayoutDashboard
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 import './styles.css';
 
 const WA_NUMBER = '62818777802';
 const WA_URL = `https://wa.me/${WA_NUMBER}`;
 const EMAIL = 'projectadain@gmail.com';
 const TOKOPEDIA_URL = '#';
+
+const ADMIN_PATH = '/admin';
+
+function pageToPath(page){
+  return page==='home' ? '/' : `/${page}`;
+}
+function pathToPage(pathname){
+  const p=String(pathname||'/').replace(/\/+$/,'') || '/';
+  if(p===ADMIN_PATH) return 'admin';
+  if(p==='/accounting') return 'accounting';
+  if(p==='/vape') return 'vape';
+  if(p==='/alat') return 'alat';
+  if(p==='/cart') return 'cart';
+  return 'home';
+}
+function numericPrice(value){
+  const raw=String(value??'').trim();
+  if(!raw || /hubungi|penawaran|info/i.test(raw)) return null;
+  const digits=raw.replace(/[^\d]/g,'');
+  return digits ? Number(digits) : null;
+}
+function unitLabel(unit){
+  return unit==='accounting'?'ada in Accounting':unit==='vape'?'ada in Vape':'ada in Alat';
+}
+function rupiahNumber(n){
+  return `Rp. ${Number(n||0).toLocaleString('id-ID')}`;
+}
 
 function waLink(message='Halo ada in Project, saya ingin konsultasi.') {
   return `${WA_URL}?text=${encodeURIComponent(message)}`;
@@ -105,7 +133,7 @@ function ProductVisual({type, index, image, title}) {
   return <div className={`product-visual ${type}`}><Icon size={48}/><span>{type === 'vape' ? 'PRODUCT' : 'OFFICE'}</span></div>
 }
 
-function ProductDetail({product,type,onClose}){
+function ProductDetail({product,type,onClose,onAddCart}){
   if(!product) return null;
   const name=product.title||product.name||'Produk';
   return <div className="product-modal-backdrop" onClick={onClose}>
@@ -119,16 +147,19 @@ function ProductDetail({product,type,onClose}){
           <div className="detail-badges"><span className="stock">{product.stock||'Tersedia'}</span></div>
           <div className="detail-price">{formatPrice(product.price)}</div>
           <p>{product.description||'Silakan hubungi kami untuk informasi lengkap mengenai produk ini.'}</p>
-          <a className="btn btn-gold" href={waLink(`Halo ada in Project, saya tertarik dengan ${name}. Mohon info lebih lanjut.`)} target="_blank" rel="noreferrer">
-            Tanya Produk <MessageCircle size={17}/>
-          </a>
+          <div className="detail-actions">
+            <button className="btn btn-primary" onClick={()=>onAddCart?.(product,type)}><ShoppingCart size={17}/> Masukkan Keranjang</button>
+            <a className="btn btn-gold" href={waLink(`Halo ada in Project, saya tertarik dengan ${name}. Mohon info lebih lanjut.`)} target="_blank" rel="noreferrer">
+              Tanya Produk <MessageCircle size={17}/>
+            </a>
+          </div>
         </div>
       </div>
     </div>
   </div>
 }
 
-function Catalog({type, products}) {
+function Catalog({type, products, onAddCart}) {
   const categories = ['Semua', ...Array.from(new Set(products.map(p=>p.category).filter(Boolean)))];
   const [category, setCategory] = useState('Semua');
   const [q, setQ] = useState('');
@@ -158,21 +189,24 @@ function Catalog({type, products}) {
               <div className="stock">{p.stock||'Tersedia'}</div>
               <div className="product-foot">
                 <strong>{formatPrice(p.price)}</strong>
-                <button className="product-detail-link" onClick={(e)=>{e.stopPropagation();setSelected(p)}}>Detail <ChevronRight size={16}/></button>
+                <div className="product-card-actions">
+                  <button className="cart-mini-btn" onClick={(e)=>{e.stopPropagation();onAddCart?.(p,type)}} title="Masukkan keranjang"><ShoppingCart size={17}/></button>
+                  <button className="product-detail-link" onClick={(e)=>{e.stopPropagation();setSelected(p)}}>Detail <ChevronRight size={16}/></button>
+                </div>
               </div>
             </div>
           </article>
         })}
       </div>
       {!filtered.length && <div className="empty-state">Produk tidak ditemukan.</div>}
-      <ProductDetail product={selected} type={type} onClose={()=>setSelected(null)}/>
+      <ProductDetail product={selected} type={type} onClose={()=>setSelected(null)} onAddCart={onAddCart}/>
     </>
   );
 }
 
-function Header({page,setPage}) {
+function Header({page,navigate,cartCount}) {
   const [open,setOpen] = useState(false);
-  const go = (target) => { setOpen(false); setPage(target); window.scrollTo({top:0, behavior:'smooth'}); };
+  const go = (target) => { setOpen(false); navigate(target); };
   return (
     <header className="nav-wrap">
       <nav className="nav container">
@@ -182,9 +216,13 @@ function Header({page,setPage}) {
           <button className={page==='accounting'?'active':''} onClick={()=>go('accounting')}>Accounting</button>
           <button className={page==='vape'?'active':''} onClick={()=>go('vape')}>Vape</button>
           <button className={page==='alat'?'active':''} onClick={()=>go('alat')}>Alat</button>
-          <button className={page==='admin'?'active':''} onClick={()=>go('admin')}>Admin</button>
         </div>
-        <a className="btn btn-primary desktop-cta" href={waLink()} target="_blank" rel="noreferrer"><MessageCircle size={18}/> Hubungi Kami</a>
+        <div className="nav-actions">
+          <button className={`cart-nav-btn ${page==='cart'?'active':''}`} onClick={()=>go('cart')}>
+            <ShoppingCart size={19}/><span>Keranjang</span>{cartCount>0&&<b>{cartCount}</b>}
+          </button>
+          <a className="btn btn-primary desktop-cta" href={waLink()} target="_blank" rel="noreferrer"><MessageCircle size={18}/> Hubungi Kami</a>
+        </div>
         <button className="menu-btn" onClick={()=>setOpen(v=>!v)}>{open?<X/>:<Menu/>}</button>
       </nav>
       {open && <div className="mobile-menu">
@@ -192,29 +230,27 @@ function Header({page,setPage}) {
         <button onClick={()=>go('accounting')}>Accounting</button>
         <button onClick={()=>go('vape')}>Vape</button>
         <button onClick={()=>go('alat')}>Alat</button>
-        <button onClick={()=>go('admin')}>Admin</button>
+        <button onClick={()=>go('cart')}>Keranjang {cartCount>0?`(${cartCount})`:''}</button>
         <a href={waLink()} target="_blank" rel="noreferrer">Hubungi Kami</a>
       </div>}
     </header>
   )
 }
 
-function Footer({setPage}) {
-  const go = p => { setPage(p); window.scrollTo({top:0,behavior:'smooth'}); };
+function Footer({navigate}) {
   return <footer className="footer-v45">
-    <div className="container footer-v45-row">
-      <button className="bare" onClick={()=>go('home')}><BrandMark compact/></button>
+    <div className="container footer-v45-row public-footer">
+      <button className="bare" onClick={()=>navigate('home')}><BrandMark compact/></button>
       <div className="footer-motto"><b>More Than Business</b><span>A Better Tomorrow</span></div>
       <a href={waLink()} target="_blank" rel="noreferrer"><Phone size={18}/>0818 777 802</a>
       <a href={`mailto:${EMAIL}`}><Mail size={18}/>{EMAIL}</a>
       <span><Landmark size={18}/>Indonesia</span>
-      <button className="footer-admin-link" onClick={()=>go('admin')}>Admin</button>
     </div>
   </footer>
 }
 
-function Home({setPage}) {
-  const go = p => { setPage(p); window.scrollTo({top:0, behavior:'smooth'}); };
+function Home({navigate}) {
+  const go = p => navigate(p);
   const [visitors,setVisitors]=useState({today:0,total:0});
   React.useEffect(()=>{
     let id=localStorage.getItem('aip_visitor_id');
@@ -308,7 +344,7 @@ function AccountingDetail({item,type,onClose}){
   </div>
 }
 
-function AccountingPage() {
+function AccountingPage({onAddService}) {
   const experiences = useContent('experience','accounting',[]);
   const testimonials = useContent('testimonial','accounting',[]);
   const [activeCategory,setActiveCategory]=useState(accountingCategories[0]);
@@ -370,7 +406,10 @@ function AccountingPage() {
           <h3>{current.title}</h3>
           <p>{current.text}</p>
         </div>
-        <a className="btn btn-primary" href={waLink(`Halo ada in Accounting, saya ingin konsultasi untuk layanan ${current.title}.`)} target="_blank" rel="noreferrer">Konsultasi</a>
+        <div className="service-cart-actions">
+          <button className="btn btn-primary" onClick={()=>onAddService?.({title:current.title,category:activeCategory,description:current.text})}><ShoppingCart size={17}/> Tambah ke Keranjang</button>
+          <a className="btn btn-ghost" href={waLink(`Halo ada in Accounting, saya ingin konsultasi untuk layanan ${current.title}.`)} target="_blank" rel="noreferrer">Konsultasi</a>
+        </div>
       </div>
 
       <div className="category-content-grid">
@@ -414,28 +453,175 @@ function AccountingPage() {
   </>
 }
 
-function VapePage() {
+function VapePage({onAddCart}) {
   const products = useContent('product','vape',fallbackVapeProducts);
   return <>
     <PageHero dark eyebrow="ADA IN VAPE" title="Katalog Vape dalam Satu Tempat" desc="Katalog untuk liquid, device, cartridge dan aksesori. Produk dapat ditampilkan dengan harga atau diarahkan langsung ke marketplace dan WhatsApp.">
       <a className="btn btn-gold" href={TOKOPEDIA_URL}>Buka Tokopedia <ExternalLink size={17}/></a>
       <a className="btn btn-dark-ghost" href={waLink('Halo ada in Vape, saya ingin tanya produk.')} target="_blank" rel="noreferrer">Tanya via WhatsApp</a>
     </PageHero>
-    <section className="section"><div className="container"><div className="section-head"><div className="eyebrow gold">KATALOG PRODUK</div><h2>Produk Tersedia</h2><p>Data di bawah masih contoh. Nantinya produk, foto, harga, stok, kategori dan link marketplace bisa dikelola dari admin panel.</p></div><Catalog type="vape" products={products}/></div></section>
+    <section className="section"><div className="container"><div className="section-head"><div className="eyebrow gold">KATALOG PRODUK</div><h2>Produk Tersedia</h2><p>Data di bawah masih contoh. Nantinya produk, foto, harga, stok, kategori dan link marketplace bisa dikelola dari admin panel.</p></div><Catalog type="vape" products={products} onAddCart={onAddCart}/></div></section>
   </>
 }
 
-function AlatPage() {
+function AlatPage({onAddCart}) {
   const products = useContent('product','alat',fallbackAlatProducts);
   return <>
     <PageHero eyebrow="ADA IN ALAT" title="Kebutuhan Kantor & General Supplies" desc="Pengadaan ATK, perlengkapan kantor, printing, filing, pantry, kebersihan dan kebutuhan operasional perusahaan.">
       <a className="btn btn-gold" href={waLink('Halo ada in Alat, saya ingin minta penawaran kebutuhan ATK / office supplies.')} target="_blank" rel="noreferrer">Minta Penawaran</a>
     </PageHero>
-    <section className="section"><div className="container"><div className="section-head"><div className="eyebrow gold">KATALOG PRODUK</div><h2>Office & General Supplies</h2><p>Harga dapat ditampilkan langsung atau menggunakan format “Minta Penawaran” untuk kebutuhan pengadaan perusahaan.</p></div><Catalog type="alat" products={products}/></div></section>
+    <section className="section"><div className="container"><div className="section-head"><div className="eyebrow gold">KATALOG PRODUK</div><h2>Office & General Supplies</h2><p>Harga dapat ditampilkan langsung atau menggunakan format “Minta Penawaran” untuk kebutuhan pengadaan perusahaan.</p></div><Catalog type="alat" products={products} onAddCart={onAddCart}/></div></section>
     <section className="section soft"><div className="container cta-band"><div><div className="eyebrow gold">PENGADAAN PERUSAHAAN</div><h2>Punya daftar kebutuhan bulanan?</h2><p>Kirim daftar barang melalui WhatsApp. Kami siapkan penawaran sesuai kebutuhan.</p></div><a className="btn btn-primary" href={waLink('Halo ada in Alat, saya punya daftar kebutuhan kantor dan ingin minta penawaran.')} target="_blank" rel="noreferrer">Kirim Daftar Kebutuhan</a></div></section>
   </>
 }
 
+
+
+function CartPage({cart,setCart,navigate}){
+  const [customer,setCustomer]=useState(()=>JSON.parse(localStorage.getItem('aip_customer')||'{"name":"","company":"","phone":"","address":"","notes":""}'));
+  const [msg,setMsg]=useState('');
+  const updateCustomer=(k,v)=>{const next={...customer,[k]:v};setCustomer(next);localStorage.setItem('aip_customer',JSON.stringify(next))};
+  const grouped=['accounting','vape','alat'].map(unit=>({unit,items:cart.filter(x=>x.unit===unit)})).filter(g=>g.items.length);
+  const numericTotal=cart.reduce((sum,x)=>sum+(x.numericPrice!=null?x.numericPrice*x.qty:0),0);
+  const hasNonNumeric=cart.some(x=>x.numericPrice==null);
+
+  const changeQty=(id,delta)=>setCart(c=>c.map(x=>x.id===id?{...x,qty:Math.max(1,x.qty+delta)}:x));
+  const remove=(id)=>setCart(c=>c.filter(x=>x.id!==id));
+  const clear=()=>{if(confirm('Kosongkan seluruh keranjang?'))setCart([])};
+
+  const buildPdf=()=>{
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+    const margin=16; let y=18;
+    doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('PESANAN PEMBELIAN / INQUIRY',margin,y); y+=8;
+    doc.setFontSize(11); doc.text('ada in Project',margin,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.text(`Tanggal: ${new Date().toLocaleString('id-ID')}`,margin,y); y+=7;
+    doc.line(margin,y,194,y); y+=7;
+
+    doc.setFont('helvetica','bold'); doc.text('Data Pemesan',margin,y); y+=6;
+    doc.setFont('helvetica','normal');
+    const info=[
+      `Nama: ${customer.name||'-'}`,
+      `Perusahaan: ${customer.company||'-'}`,
+      `No. WA: ${customer.phone||'-'}`,
+      `Alamat: ${customer.address||'-'}`
+    ];
+    info.forEach(t=>{doc.text(t,margin,y);y+=5});
+    y+=3;
+
+    grouped.forEach(group=>{
+      if(y>260){doc.addPage();y=18}
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(unitLabel(group.unit),margin,y); y+=6;
+      doc.setFontSize(9);
+      group.items.forEach((x,i)=>{
+        if(y>270){doc.addPage();y=18}
+        doc.setFont('helvetica','bold');
+        doc.text(`${i+1}. ${x.title}`,margin,y); y+=5;
+        doc.setFont('helvetica','normal');
+        doc.text(`Kategori: ${x.category||'-'} | Qty: ${x.qty}`,margin+4,y); y+=5;
+        const price=x.numericPrice!=null?`${rupiahNumber(x.numericPrice)} x ${x.qty} = ${rupiahNumber(x.numericPrice*x.qty)}`:(x.price||'Hubungi Kami');
+        doc.text(`Harga: ${price}`,margin+4,y); y+=5;
+        if(x.description){const lines=doc.splitTextToSize(`Catatan: ${x.description}`,170);doc.text(lines,margin+4,y);y+=lines.length*4.5}
+        y+=3;
+      });
+      y+=2;
+    });
+
+    doc.line(margin,y,194,y); y+=7;
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(`Total harga terhitung: ${rupiahNumber(numericTotal)}`,margin,y); y+=6;
+    if(hasNonNumeric){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('* Item bertanda Hubungi Kami/Minta Penawaran akan dikonfirmasi oleh admin.',margin,y);y+=6}
+    if(customer.notes){
+      doc.setFont('helvetica','bold');doc.text('Catatan Pemesan:',margin,y);y+=5;
+      doc.setFont('helvetica','normal');const lines=doc.splitTextToSize(customer.notes,175);doc.text(lines,margin,y);y+=lines.length*4.5;
+    }
+    y+=8;
+    doc.setFontSize(8); doc.setTextColor(100); doc.text('Dokumen dibuat otomatis melalui website ada in Project.',margin,y);
+    return doc;
+  };
+
+  const downloadPdf=()=>{
+    if(!cart.length)return;
+    const doc=buildPdf();
+    doc.save(`Pesanan-ada-in-Project-${Date.now()}.pdf`);
+  };
+
+  const printPdf=()=>{
+    if(!cart.length)return;
+    const doc=buildPdf();
+    const url=URL.createObjectURL(doc.output('blob'));
+    const win=window.open(url,'_blank');
+    if(!win){setMsg('Popup diblokir browser. Gunakan tombol Download PDF.');return}
+    setTimeout(()=>{try{win.print()}catch{}},800);
+  };
+
+  const sendWhatsApp=async()=>{
+    if(!cart.length)return;
+    const doc=buildPdf();
+    const blob=doc.output('blob');
+    const file=new File([blob],`Pesanan-ada-in-Project-${Date.now()}.pdf`,{type:'application/pdf'});
+    const summary=cart.map((x,i)=>`${i+1}. ${x.title} (${unitLabel(x.unit)}) x${x.qty}`).join('\n');
+    const text=`Halo ada in Project, saya ingin mengirim pesanan/inquiry berikut:\n\n${summary}\n\nNama: ${customer.name||'-'}\nPerusahaan: ${customer.company||'-'}\nMohon konfirmasi ketersediaan dan total pesanan.`;
+    if(navigator.canShare?.({files:[file]}) && navigator.share){
+      try{
+        await navigator.share({title:'Pesanan ada in Project',text,files:[file]});
+        setMsg('PDF siap dibagikan. Pilih WhatsApp pada menu Share.');
+        return;
+      }catch(e){
+        if(e?.name==='AbortError')return;
+      }
+    }
+    doc.save(file.name);
+    window.open(waLink(text),'_blank');
+    setMsg('PDF sudah diunduh dan WhatsApp dibuka. Lampirkan PDF tersebut pada chat admin.');
+  };
+
+  return <section className="section cart-page"><div className="container">
+    <div className="section-head">
+      <div className="eyebrow gold">KERANJANG PESANAN</div>
+      <h2>Produk & Jasa Pilihan Anda</h2>
+      <p>Gabungkan produk atau jasa dari masing-masing unit bisnis, lalu cetak atau kirim pesanan ke admin.</p>
+    </div>
+
+    {cart.length===0 ? <div className="cart-empty"><ShoppingCart size={48}/><h3>Keranjang masih kosong</h3><p>Pilih produk atau jasa dari Accounting, Vape, atau Alat.</p><button className="btn btn-primary" onClick={()=>navigate('home')}>Lihat Unit Bisnis</button></div>
+    : <div className="cart-layout">
+      <div className="cart-items">
+        {grouped.map(group=><div className="cart-group" key={group.unit}>
+          <div className="cart-group-title"><span>{unitLabel(group.unit)}</span><b>{group.items.length} item</b></div>
+          {group.items.map(x=><article className="cart-item" key={x.id}>
+            {x.image_url?<img src={x.image_url} alt={x.title}/>:<div className="cart-item-placeholder"><ClipboardList/></div>}
+            <div className="cart-item-copy">
+              <small>{x.category||'Item'}</small><h3>{x.title}</h3>
+              <p>{x.priceDisplay}</p>
+              <div className="qty-control"><button onClick={()=>changeQty(x.id,-1)}><Minus size={15}/></button><span>{x.qty}</span><button onClick={()=>changeQty(x.id,1)}><Plus size={15}/></button></div>
+            </div>
+            <div className="cart-item-right">
+              <strong>{x.numericPrice!=null?rupiahNumber(x.numericPrice*x.qty):x.priceDisplay}</strong>
+              <button className="cart-remove" onClick={()=>remove(x.id)}><Trash size={17}/> Hapus</button>
+            </div>
+          </article>)}
+        </div>)}
+        <button className="cart-clear" onClick={clear}>Kosongkan Keranjang</button>
+      </div>
+
+      <aside className="cart-summary">
+        <h3>Data Pemesan</h3>
+        <label>Nama<input value={customer.name} onChange={e=>updateCustomer('name',e.target.value)} placeholder="Nama pemesan"/></label>
+        <label>Perusahaan<input value={customer.company} onChange={e=>updateCustomer('company',e.target.value)} placeholder="Nama PT / Toko / Instansi"/></label>
+        <label>No. WhatsApp<input value={customer.phone} onChange={e=>updateCustomer('phone',e.target.value)} placeholder="08xxxxxxxxxx"/></label>
+        <label>Alamat<textarea rows="3" value={customer.address} onChange={e=>updateCustomer('address',e.target.value)} placeholder="Alamat pengiriman / perusahaan"/></label>
+        <label>Catatan<textarea rows="3" value={customer.notes} onChange={e=>updateCustomer('notes',e.target.value)} placeholder="Catatan tambahan"/></label>
+        <div className="cart-total"><span>Total harga terhitung</span><strong>{rupiahNumber(numericTotal)}</strong>{hasNonNumeric&&<small>Belum termasuk item yang perlu penawaran.</small>}</div>
+        <div className="cart-actions">
+          <button className="btn btn-primary" onClick={downloadPdf}><FileDown size={17}/> Download PDF</button>
+          <button className="btn btn-ghost" onClick={printPdf}><Printer size={17}/> Print / Save PDF</button>
+          <button className="btn btn-gold" onClick={sendWhatsApp}><Send size={17}/> Kirim via WhatsApp</button>
+        </div>
+        {msg&&<div className="cart-msg">{msg}</div>}
+      </aside>
+    </div>}
+  </div></section>
+}
 
 function AdminPage(){
   const [token,setToken]=useState(()=>sessionStorage.getItem('aip_admin')||'');
@@ -484,8 +670,79 @@ function AdminPage(){
 }
 
 function App() {
-  const [page,setPage] = useState('home');
-  return <div className="app"><Header page={page} setPage={setPage}/><main>{page==='home'&&<Home setPage={setPage}/>} {page==='accounting'&&<AccountingPage/>} {page==='vape'&&<VapePage/>} {page==='alat'&&<AlatPage/>} {page==='admin'&&<AdminPage/>}</main><Footer setPage={setPage}/></div>
+  const [page,setPage] = useState(()=>pathToPage(window.location.pathname));
+  const [cart,setCart] = useState(()=>{try{return JSON.parse(localStorage.getItem('aip_cart')||'[]')}catch{return []}});
+
+  React.useEffect(()=>{localStorage.setItem('aip_cart',JSON.stringify(cart))},[cart]);
+  React.useEffect(()=>{
+    const pop=()=>setPage(pathToPage(window.location.pathname));
+    window.addEventListener('popstate',pop);
+    return()=>window.removeEventListener('popstate',pop);
+  },[]);
+
+  const navigate=(target)=>{
+    setPage(target);
+    const path=pageToPath(target);
+    if(window.location.pathname!==path) history.pushState({},'',path);
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  const addCartItem=(item)=>{
+    setCart(prev=>{
+      const found=prev.find(x=>x.id===item.id);
+      if(found)return prev.map(x=>x.id===item.id?{...x,qty:x.qty+1}:x);
+      return [...prev,{...item,qty:1}];
+    });
+  };
+
+  const addProduct=(p,unit)=>{
+    const title=p.title||p.name||'Produk';
+    addCartItem({
+      id:`product-${unit}-${p.id||title}`,
+      sourceId:p.id||null,
+      kind:'product',
+      unit,
+      title,
+      category:p.category||'Produk',
+      price:p.price||'Info Produk',
+      priceDisplay:formatPrice(p.price),
+      numericPrice:numericPrice(p.price),
+      image_url:p.image_url||'',
+      description:p.description||''
+    });
+  };
+
+  const addService=(s)=>{
+    addCartItem({
+      id:`service-accounting-${s.category}`,
+      sourceId:null,
+      kind:'service',
+      unit:'accounting',
+      title:s.title,
+      category:s.category,
+      price:'Minta Penawaran',
+      priceDisplay:'Minta Penawaran',
+      numericPrice:null,
+      image_url:'',
+      description:s.description||''
+    });
+  };
+
+  const cartCount=cart.reduce((n,x)=>n+x.qty,0);
+  const publicPage=page!=='admin';
+
+  return <div className="app">
+    {publicPage&&<Header page={page} navigate={navigate} cartCount={cartCount}/>}
+    <main>
+      {page==='home'&&<Home navigate={navigate}/>}
+      {page==='accounting'&&<AccountingPage onAddService={addService}/>}
+      {page==='vape'&&<VapePage onAddCart={addProduct}/>}
+      {page==='alat'&&<AlatPage onAddCart={addProduct}/>}
+      {page==='cart'&&<CartPage cart={cart} setCart={setCart} navigate={navigate}/>}
+      {page==='admin'&&<AdminPage/>}
+    </main>
+    {publicPage&&<Footer navigate={navigate}/>}
+  </div>
 }
 
 createRoot(document.getElementById('root')).render(<App/>);
