@@ -12,13 +12,13 @@ const TOKOPEDIA_URL = '#';
 
 function BrandMark({ compact = false }) {
   return (
-    <div className={`brand-mark ${compact ? 'compact' : ''}`} aria-label="ada in">
-      <svg viewBox="0 0 180 82" role="img" aria-label="AIP ada in">
+    <div className={`brand-mark ${compact ? 'compact' : ''}`} aria-label="ada in Project">
+      <svg className="aip-symbol" viewBox="0 0 175 62" role="img" aria-label="AIP">
         <path d="M12 54 L40 10 L68 54" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
         <path d="M87 10 L87 54" fill="none" stroke="#c99016" strokeWidth="6" strokeLinecap="round"/>
         <path d="M105 14 H145 Q160 14 160 28 Q160 42 145 42 H113 M113 48 V54" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
-        <text x="10" y="77" fontSize="20" fontFamily="Arial, sans-serif" fill="currentColor">ada in</text>
       </svg>
+      <div className="brand-name"><span>ada in</span> <strong>Project</strong></div>
     </div>
   );
 }
@@ -128,7 +128,7 @@ function App() {
               {units.map(({id,title,kicker,desc,cta,icon:Icon,href}) => (
                 <article className={`unit-card ${id}`} key={id}>
                   <div className="unit-icon"><Icon size={34}/></div>
-                  <div className="unit-label">AIP / ada in</div>
+                  <div className="unit-label">AIP / ada in Project</div>
                   <h3>{title}</h3>
                   <div className="unit-kicker">{kicker}</div>
                   <p>{desc}</p>
@@ -217,7 +217,7 @@ function App() {
             <div>
               <div className="eyebrow gold">HUBUNGI KAMI</div>
               <h2>Ada yang Bisa Kami Bantu?</h2>
-              <p>Hubungi tim ada in untuk konsultasi layanan, permintaan penawaran, atau informasi mengenai unit bisnis kami.</p>
+              <p>Hubungi tim ada in Project untuk konsultasi layanan, permintaan penawaran, atau informasi mengenai unit bisnis kami.</p>
               <div className="contact-list">
                 <a href={WA_URL} target="_blank" rel="noreferrer"><Phone size={18}/> 0818 777 802</a>
                 <a href="mailto:projectadain@gmail.com"><Mail size={18}/> projectadain@gmail.com</a>
