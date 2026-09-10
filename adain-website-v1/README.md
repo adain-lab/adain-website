@@ -1,16 +1,16 @@
-# ada in Project V4.7 — Experience & Testimoni Detail
+# ada in Project V4.8 — Unit Background & Accounting Category Hub
 
 Update:
-- Admin Experience & Testimoni punya field `Nama Client`.
-- `Nama Project / Jasa` terpisah dan jelas.
-- Kategori Accounting menjadi dropdown:
-  - Pembukuan & Laporan Keuangan
-  - Perpajakan
-  - Payroll & BPJS
-  - Finance Administration
-  - Accounting System & Implementation
-- Experience dan Testimoni tampil di halaman Accounting.
-- Card Experience/Testimoni dapat diklik.
-- Klik card membuka detail: kategori, nama project/jasa, nama client, deskripsi/testimoni, dan CTA WhatsApp.
-- Database otomatis menambah kolom `client_name`, tanpa input SQL manual.
-- Semua fitur produk, D1, R2, CRUD, visitor counter, dan price formatting tetap dipertahankan.
+1. Homepage 3 unit bisnis memakai foto user sebagai background:
+   - Accounting → foto Finance/Tax/Accounting
+   - Vape → foto vape hitam/gold
+   - Alat → foto office tools/ATK
+2. Halaman Accounting diubah menjadi hub berdasarkan kategori.
+3. Pilih kategori layanan → langsung tampil:
+   - Layanan terkait
+   - Experience/Project pada kategori tersebut
+   - Testimoni pada kategori tersebut
+4. Experience/Testimoni tetap bisa diklik ke detail.
+5. Data dari Admin otomatis masuk ke kategori yang dipilih berdasarkan dropdown kategori.
+
+Semua fitur sebelumnya tetap ada: Admin CRUD, D1, R2, produk, detail produk, visitor counter, price formatting.

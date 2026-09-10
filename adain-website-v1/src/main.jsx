@@ -258,13 +258,9 @@ function Home({setPage}) {
         <div className="unit-grid">
           {units.map(({id,title,kicker,desc,cta,icon:Icon})=>(
             <article className={`unit-card ${id} visual-card`} key={id}>
-              <div className="unit-visual">
-                <div className="unit-brand"><BrandMark compact/><span>{title.replace('ada in ','')}</span></div>
-                <div className="unit-scene">
-                  {id==='accounting'&&<><Calculator size={74}/><FileSpreadsheet size={54}/><TrendingUp size={60}/></>}
-                  {id==='vape'&&<><Package size={76}/><ShoppingBag size={58}/><Store size={60}/></>}
-                  {id==='alat'&&<><PenTool size={70}/><Printer size={58}/><BriefcaseBusiness size={62}/></>}
-                </div>
+              <div className={`unit-visual unit-photo ${id}`}>
+                <div className="unit-photo-overlay"></div>
+                <div className="unit-brand unit-brand-photo"><BrandMark compact/><span>{title.replace('ada in ','')}</span></div>
                 <div className="unit-icon"><Icon size={27}/></div>
               </div>
               <div className="unit-body">
@@ -313,58 +309,106 @@ function AccountingDetail({item,type,onClose}){
 }
 
 function AccountingPage() {
-  const experiences = useContent('experience','accounting',fallbackExperiences);
+  const experiences = useContent('experience','accounting',[]);
   const testimonials = useContent('testimonial','accounting',[]);
+  const [activeCategory,setActiveCategory]=useState(accountingCategories[0]);
   const [detail,setDetail]=useState(null);
 
-  const expName = e => e.title || e.name || 'Project';
-  const expClient = e => e.client_name || e.client || '';
-  const expCategory = e => e.category || e.tag || e.type || 'Accounting';
-  const expDesc = e => e.description || e.text || '';
+  const serviceByCategory = {
+    'Pembukuan & Laporan Keuangan': {
+      icon: FileSpreadsheet,
+      title: 'Pembukuan & Laporan Keuangan',
+      text: 'Pencatatan transaksi, rekonsiliasi, closing bulanan, penyusunan laporan keuangan dan review administrasi.'
+    },
+    'Perpajakan': {
+      icon: ReceiptText,
+      title: 'Perpajakan',
+      text: 'Pendampingan administrasi pajak, PPh, PPN, pelaporan dan kebutuhan compliance perusahaan.'
+    },
+    'Payroll & BPJS': {
+      icon: Users,
+      title: 'Payroll & BPJS',
+      text: 'Perhitungan payroll, BPJS, PPh 21, slip gaji dan administrasi penggajian secara lebih tertib.'
+    },
+    'Finance Administration': {
+      icon: Landmark,
+      title: 'Finance Administration',
+      text: 'Cashflow, budgeting, SOP, kontrol dokumen, pengajuan pembayaran dan dukungan administrasi finance.'
+    },
+    'Accounting System & Implementation': {
+      icon: Boxes,
+      title: 'Accounting System & Implementation',
+      text: 'Setup chart of accounts, alur transaksi, migrasi data, implementasi sistem dan pendampingan penggunaan.'
+    }
+  };
+
+  const categoryExp = experiences.filter(x => x.category===activeCategory);
+  const categoryTesti = testimonials.filter(x => x.category===activeCategory);
+  const current = serviceByCategory[activeCategory] || serviceByCategory[accountingCategories[0]];
+  const CurrentIcon = current.icon;
 
   return <>
     <PageHero eyebrow="ADA IN ACCOUNTING" title="Akuntansi Lebih Tertib, Bisnis Lebih Fokus" desc="Layanan akuntansi, keuangan, perpajakan, payroll, dan administrasi untuk membantu bisnis bekerja lebih rapi dan terukur.">
       <a className="btn btn-gold" href={waLink('Halo ada in Accounting, saya ingin konsultasi terkait layanan accounting/finance/tax.')} target="_blank" rel="noreferrer">Konsultasi Sekarang</a>
     </PageHero>
 
-    <section className="section"><div className="container">
-      <div className="section-head"><div className="eyebrow gold">LAYANAN</div><h2>Layanan yang Dapat Disesuaikan</h2></div>
-      <div className="service-grid">{services.map(({icon:Icon,title,text})=><article className="service-card" key={title}><Icon/><h3>{title}</h3><p>{text}</p><CheckCircle2 className="check"/></article>)}</div>
-    </div></section>
-
-    <section className="section soft"><div className="container">
+    <section className="section accounting-hub"><div className="container">
       <div className="section-head">
-        <div className="eyebrow gold">EXPERIENCE</div>
-        <h2>Experience & Project</h2>
-        <p>Beberapa pengalaman pekerjaan dan project yang pernah ditangani oleh ada in Accounting.</p>
+        <div className="eyebrow gold">LAYANAN & EXPERIENCE / TESTIMONI</div>
+        <h2>Pilih Kategori Layanan</h2>
+        <p>Pilih kategori untuk melihat layanan serta Experience dan Testimoni yang sesuai dalam satu tempat.</p>
       </div>
-      <div className="experience-grid">
-        {experiences.map((e,i)=><article className="experience-card clickable-experience" key={e.id||expName(e)} onClick={()=>setDetail({item:e,type:'experience'})}>
-          <div className="experience-no">{String(i+1).padStart(2,'0')}</div>
-          <div className="experience-tag">{expCategory(e)}</div>
-          <h3>{expName(e)}</h3>
-          {expClient(e)&&<div className="experience-client">{expClient(e)}</div>}
-          <p>{expDesc(e).slice(0,120)}{expDesc(e).length>120?'…':''}</p>
-          <button className="experience-detail-btn" onClick={(ev)=>{ev.stopPropagation();setDetail({item:e,type:'experience'})}}>Lihat Detail <ChevronRight size={16}/></button>
-        </article>)}
+
+      <div className="accounting-category-tabs">
+        {accountingCategories.map(cat=><button key={cat} className={activeCategory===cat?'active':''} onClick={()=>setActiveCategory(cat)}>{cat}</button>)}
+      </div>
+
+      <div className="accounting-service-feature">
+        <div className="service-feature-icon"><CurrentIcon size={34}/></div>
+        <div>
+          <div className="eyebrow gold">LAYANAN</div>
+          <h3>{current.title}</h3>
+          <p>{current.text}</p>
+        </div>
+        <a className="btn btn-primary" href={waLink(`Halo ada in Accounting, saya ingin konsultasi untuk layanan ${current.title}.`)} target="_blank" rel="noreferrer">Konsultasi</a>
+      </div>
+
+      <div className="category-content-grid">
+        <div className="category-content-column">
+          <div className="category-block-title"><div><span>EXPERIENCE / PROJECT</span><h3>Pengalaman di kategori ini</h3></div><b>{categoryExp.length}</b></div>
+          {categoryExp.length===0
+            ? <div className="empty-state">Belum ada Experience pada kategori ini.</div>
+            : <div className="category-card-list">{categoryExp.map((e,i)=><article className="category-detail-card" key={e.id||e.title} onClick={()=>setDetail({item:e,type:'experience'})}>
+                <div className="category-card-no">{String(i+1).padStart(2,'0')}</div>
+                <div className="category-card-copy">
+                  {e.client_name&&<small>CLIENT • {e.client_name}</small>}
+                  <h4>{e.title}</h4>
+                  <p>{(e.description||'').slice(0,120)}{(e.description||'').length>120?'…':''}</p>
+                  <button>Lihat Detail <ChevronRight size={15}/></button>
+                </div>
+              </article>)}</div>
+          }
+        </div>
+
+        <div className="category-content-column">
+          <div className="category-block-title"><div><span>TESTIMONI</span><h3>Apa kata klien</h3></div><b>{categoryTesti.length}</b></div>
+          {categoryTesti.length===0
+            ? <div className="empty-state">Belum ada Testimoni pada kategori ini.</div>
+            : <div className="category-card-list">{categoryTesti.map(t=><article className="category-detail-card testimonial" key={t.id||t.title} onClick={()=>setDetail({item:t,type:'testimonial'})}>
+                <Star className="category-star" size={21}/>
+                <div className="category-card-copy">
+                  {t.client_name&&<small>CLIENT • {t.client_name}</small>}
+                  <h4>{t.title}</h4>
+                  <p>{(t.description||'').slice(0,140)}{(t.description||'').length>140?'…':''}</p>
+                  <button>Lihat Detail <ChevronRight size={15}/></button>
+                </div>
+              </article>)}</div>
+          }
+        </div>
       </div>
     </div></section>
 
-    {testimonials.length>0 && <section className="section"><div className="container">
-      <div className="section-head"><div className="eyebrow gold">TESTIMONI</div><h2>Apa Kata Klien</h2></div>
-      <div className="experience-grid">
-        {testimonials.map(t=><article className="experience-card testimonial-card clickable-experience" key={t.id||t.title} onClick={()=>setDetail({item:t,type:'testimonial'})}>
-          <Star className="star"/>
-          <div className="experience-tag">{expCategory(t)}</div>
-          <h3>{t.title}</h3>
-          {expClient(t)&&<div className="experience-client">{expClient(t)}</div>}
-          <p>{expDesc(t).slice(0,140)}{expDesc(t).length>140?'…':''}</p>
-          <button className="experience-detail-btn" onClick={(ev)=>{ev.stopPropagation();setDetail({item:t,type:'testimonial'})}}>Lihat Detail <ChevronRight size={16}/></button>
-        </article>)}
-      </div>
-    </div></section>}
-
-    <section className="section"><div className="container cta-band"><div><div className="eyebrow gold">BUTUH DISKUSI?</div><h2>Ceritakan kebutuhan perusahaan Anda.</h2></div><a className="btn btn-gold" href={waLink('Halo ada in Accounting, saya ingin berdiskusi mengenai kebutuhan perusahaan saya.')} target="_blank" rel="noreferrer">WhatsApp Accounting <ArrowRight size={18}/></a></div></section>
+    <section className="section soft"><div className="container cta-band"><div><div className="eyebrow gold">BUTUH DISKUSI?</div><h2>Ceritakan kebutuhan perusahaan Anda.</h2></div><a className="btn btn-gold" href={waLink('Halo ada in Accounting, saya ingin berdiskusi mengenai kebutuhan perusahaan saya.')} target="_blank" rel="noreferrer">WhatsApp Accounting <ArrowRight size={18}/></a></div></section>
 
     {detail&&<AccountingDetail item={detail.item} type={detail.type} onClose={()=>setDetail(null)}/>}
   </>
