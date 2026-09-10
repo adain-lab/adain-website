@@ -5,7 +5,7 @@ import {
   ShieldCheck, Headphones, Boxes, TrendingUp, MessageCircle,
   Mail, Phone, ArrowRight, CheckCircle2, Search, Filter, Star,
   FileSpreadsheet, ReceiptText, Landmark, Users, Package, ShoppingBag,
-  Printer, PenTool, Coffee, SprayCan, ExternalLink, ShoppingCart, Plus, Minus, FileDown, Send, Trash, ClipboardList, LogIn, LogOut, Eye, EyeOff, Plus, Pencil, Trash2, Upload, Save, LayoutDashboard
+  Printer, PenTool, Coffee, SprayCan, ExternalLink, ShoppingCart, Plus, Minus, FileDown, Send, Trash, ClipboardList, LogIn, LogOut, Eye, EyeOff, Pencil, Trash2, Upload, Save, LayoutDashboard
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import './styles.css';
