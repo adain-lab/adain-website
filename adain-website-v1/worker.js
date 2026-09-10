@@ -19,10 +19,44 @@ async function ensureDB(db){
 }
 
 function unauthorized(){return json({error:'Unauthorized'},401)}
-function isAdmin(request, env){
+
+function adminSecret(env){
+  return String(env.ADMIN_PASSWORD || '').trim();
+}
+
+function toB64Url(bytes){
+  let s='';
+  for(const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+
+async function signAdminToken(secret, ts){
+  const key=await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    {name:'HMAC',hash:'SHA-256'},
+    false,
+    ['sign']
+  );
+  const sig=await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(String(ts)));
+  return `${ts}.${toB64Url(new Uint8Array(sig))}`;
+}
+
+async function verifyAdminToken(request, env){
+  const secret=adminSecret(env);
+  if(!secret) return false;
+
   const auth=request.headers.get('authorization')||'';
   const token=auth.startsWith('Bearer ')?auth.slice(7):'';
-  return !!env.ADMIN_PASSWORD && token===env.ADMIN_PASSWORD;
+  const [tsRaw,sig]=token.split('.');
+  const ts=Number(tsRaw);
+  if(!ts || !sig) return false;
+
+  // 12-hour admin session
+  if(Date.now()-ts > 12*60*60*1000 || ts-Date.now() > 60*1000) return false;
+
+  const expected=await signAdminToken(secret,ts);
+  return token===expected;
 }
 
 export default {
@@ -46,9 +80,18 @@ export default {
     await ensureDB(env.DB);
 
     if(url.pathname==='/api/health') return json({ok:true});
+    if(url.pathname==='/api/admin-status' && request.method==='GET'){
+      const secret=adminSecret(env);
+      return json({ok:true,secretConfigured:!!secret,secretLength:secret.length});
+    }
     if(url.pathname==='/api/login' && request.method==='POST'){
       const body=await request.json().catch(()=>({}));
-      if(env.ADMIN_PASSWORD && body.password===env.ADMIN_PASSWORD) return json({ok:true,token:body.password});
+      const secret=adminSecret(env);
+      const supplied=String(body.password || '').trim();
+      if(secret && supplied===secret){
+        const ts=Date.now();
+        return json({ok:true,token:await signAdminToken(secret,ts)});
+      }
       return unauthorized();
     }
     if(url.pathname==='/api/content' && request.method==='GET'){
@@ -60,7 +103,7 @@ export default {
       const {results}=await env.DB.prepare(sql).bind(...binds).all(); return json(results||[]);
     }
     if(url.pathname==='/api/content' && request.method==='POST'){
-      if(!isAdmin(request,env)) return unauthorized();
+      if(!await verifyAdminToken(request,env)) return unauthorized();
       const b=await request.json(); if(!allowedTypes.has(b.type)||!b.title) return json({error:'Data tidak lengkap'},400);
       const r=await env.DB.prepare(`INSERT INTO content(type,unit,title,category,price,stock,description,image_url,sort_order) VALUES(?,?,?,?,?,?,?,?,?)`)
         .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0).run();
@@ -68,16 +111,16 @@ export default {
     }
     const m=url.pathname.match(/^\/api\/content\/(\d+)$/);
     if(m && request.method==='PUT'){
-      if(!isAdmin(request,env)) return unauthorized(); const b=await request.json();
+      if(!await verifyAdminToken(request,env)) return unauthorized(); const b=await request.json();
       await env.DB.prepare(`UPDATE content SET type=?,unit=?,title=?,category=?,price=?,stock=?,description=?,image_url=?,sort_order=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
         .bind(b.type,b.unit||'',b.title,b.category||'',b.price||'',b.stock||'',b.description||'',b.image_url||'',Number(b.sort_order)||0,Number(m[1])).run();
       return json({ok:true});
     }
     if(m && request.method==='DELETE'){
-      if(!isAdmin(request,env)) return unauthorized(); await env.DB.prepare('DELETE FROM content WHERE id=?').bind(Number(m[1])).run(); return json({ok:true});
+      if(!await verifyAdminToken(request,env)) return unauthorized(); await env.DB.prepare('DELETE FROM content WHERE id=?').bind(Number(m[1])).run(); return json({ok:true});
     }
     if(url.pathname==='/api/upload' && request.method==='POST'){
-      if(!isAdmin(request,env)) return unauthorized();
+      if(!await verifyAdminToken(request,env)) return unauthorized();
       if(!env.MEDIA) return json({error:'R2 binding MEDIA belum tersedia.'},503);
       const form=await request.formData(); const file=form.get('file'); if(!file || typeof file==='string') return json({error:'File tidak ditemukan'},400);
       if(file.size>5*1024*1024) return json({error:'Maksimal file 5 MB'},400);
